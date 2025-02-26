@@ -1,7 +1,8 @@
 import express from "express";
 import Product from "../models/products.js";
 import sendResponse from "../helpers/Response.js";
-import autheUser from "../middleware/authUser.js";
+import {autheUser , isAdminCheck} from "../middleware/authUser.js";
+// import isAdminCheck from "../middleware/authUser.js";
 import uploads from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
@@ -18,7 +19,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/addProdcuts", autheUser, uploads.single("image"), async (req, res) => {
+router.post("/addProdcuts", autheUser , isAdminCheck , uploads.single("image"), async (req, res) => {
     try {
       //   if (!req.user.isAdmin) {
       //     sendResponse(res, 500, null, true, { message: "Access denied" });
@@ -74,7 +75,7 @@ router.post("/addProdcuts", autheUser, uploads.single("image"), async (req, res)
 //     }
 //   );
 
-router.put("/edit/:id", autheUser, uploads.single("image"),
+router.put("/edit/:id", autheUser, isAdminCheck , uploads.single("image"),
   async (req, res) => {
     try {
       //   if (!req.user.isAdmin) {
@@ -107,7 +108,7 @@ router.put("/edit/:id", autheUser, uploads.single("image"),
   }
 );
 
-router.delete("/delete/:id", autheUser, async (req, res) => {
+router.delete("/delete/:id", autheUser, isAdminCheck , async (req, res) => {
   try {
     // if (!req.user.isAdmin) {
     //   sendResponse(res, 500, null, true, { message: "Access denied" });

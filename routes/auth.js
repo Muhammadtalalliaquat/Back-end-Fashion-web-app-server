@@ -143,7 +143,14 @@ router.post(`/login`, async (req, res) => {
 
     delete user.password;
 
-    var token = jwt.sign({ ...user }, process.env.AUTH_SECRET);
+    // var token = jwt.sign({ ...user }, process.env.AUTH_SECRET);
+    var token = jwt.sign(
+      { id: user._id, isAdmin: user.isAdmin }, 
+      process.env.AUTH_SECRET, 
+      { expiresIn: "1d" }
+  );
+    // var token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.AUTH_SECRET, { expiresIn: `1d` });
+
 
     sendResponse(res, 200, { user, token }, false, "User Login Successfully");
   } catch (err) {
