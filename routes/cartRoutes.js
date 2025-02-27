@@ -1,5 +1,5 @@
 import express from "express";
-import ProductCart from "../models/productCart.js";;
+import ProductCart from "../models/productCart.js";
 import sendResponse from "../helpers/Response.js";
 import { autheUser }  from "../middleware/authUser.js";
 
@@ -7,11 +7,25 @@ import { autheUser }  from "../middleware/authUser.js";
 
 const router = express.Router();
 
+
+router.get("/getCart" , autheUser , async (req , res) => {
+
+    try{
+        const cart = await ProductCart.findOne({ userId: req.user._id }).populate("products.productId");
+
+        if (!cart) return sendResponse(res, 404, null, true, "Cart is empty");
+        
+        sendResponse(res, 200, cart, false, "Cart fetched successfully");
+    } catch (error) {
+        sendResponse(res, 500, null, true, error.message);
+    }
+})
+
+
 router.post("/addCart", autheUser, async (req, res) => {
     const { productId, quantity } = req.body;
-    console.log("Request User:", req.user);
-    console.log("Request Body:", req.body);
-
+    // console.log("Request User:", req.user);
+    // console.log("Request Body:", req.body);
     try {
         let cart = await ProductCart.findOne({ userId: req.user._id });
 
@@ -38,36 +52,6 @@ router.post("/addCart", autheUser, async (req, res) => {
     }
 });
 
-
-
-// router.post("/addCart" , autheUser , async (req , res) => {
-//     const { productId , quantity } = req.body;
-//     console.log("Request User:", req.user);
-//         console.log("Request Body:", req.body);
-//     try{
-//         let cart = await ProductCart.findOne({userId: req.user.id});
-
-//         if(!cart){
-//             cart = new ProductCart({ userId: req.user._id , products: [] });
-//         }
-//         const existingProduct = cart.products.find(p => p.productId === productId);
-
-//         if(existingProduct){
-//             existingProduct.quantity += quantity || 1;
-//         } else{
-//             cart.products.push({ productId, quantity});
-//         }
-
-//         await cart.save();
-
-//         const updatedCart  = ProductCart.findById( cart._id ).populate("products.productId");
-
-//         sendResponse(res, 200, updatedCart, false, "Product added to cart");
-
-//     } catch(error) {
-//         sendResponse(res, 500, null, true, error.message);
-//     }
-// });
 
 
 router.delete("/remove/:productId", autheUser, async (req, res) => {

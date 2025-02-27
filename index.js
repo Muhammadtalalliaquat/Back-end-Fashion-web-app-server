@@ -2,6 +2,8 @@ import express from "express";
 import authRoutes from "./routes/auth.js";
 import productRoutes  from "./routes/adminRoutes.js";
 import cartRoutes  from "./routes/cartRoutes.js";
+import orderRoutes  from "./routes/orderRoute.js";
+import reviewRoutes  from "./routes/reviewRoute.js";
 import morgan from "morgan";
 import connectDB from "./database/data.js";
 import cors from "cors";
@@ -28,6 +30,8 @@ connectDB()
     app.use("/user", authRoutes);
     app.use("/admin" , productRoutes);
     app.use("/cart" , cartRoutes);
+    app.use("/order" , orderRoutes);
+    app.use("/review" , reviewRoutes);
     app.use("/uploads" , express.static(path.join(path.resolve(), "uploads")))
     // app.use("/task", autheUser, taskRoutes);
 
