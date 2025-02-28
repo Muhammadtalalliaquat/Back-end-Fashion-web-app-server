@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import bcrypt, { hash } from "bcrypt";
 import nodemailer from "nodemailer";
 import "dotenv/config";
+import { autheUser } from "../middleware/authUser.js";
 
 const router = express.Router();
 
@@ -145,12 +146,11 @@ router.post(`/login`, async (req, res) => {
 
     // var token = jwt.sign({ ...user }, process.env.AUTH_SECRET);
     var token = jwt.sign(
-      { id: user._id, isAdmin: user.isAdmin }, 
-      process.env.AUTH_SECRET, 
+      { id: user._id, isAdmin: user.isAdmin },
+      process.env.AUTH_SECRET,
       { expiresIn: "1d" }
-  );
+    );
     // var token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.AUTH_SECRET, { expiresIn: `1d` });
-
 
     sendResponse(res, 200, { user, token }, false, "User Login Successfully");
   } catch (err) {
@@ -232,6 +232,26 @@ router.post(`/resetPassword`, async (req, res) => {
       return sendResponse(res, 401, null, true, "Invalid or expired token.");
     }
     sendResponse(res, 500, null, true, "Something went wrong.");
+  }
+});
+
+router.post("/updateAccount", autheUser, async (req, res) => {
+  try {
+    const { userName, email, password } = req.body;
+
+    let updateData = {};
+
+    if (userName) updateData.userName = userName;
+    if (email) updateData.email = email;
+    if (password) updateData.password = await bcrypt.hash(password, 10);
+
+    const user = await User.findByIdAndUpdate(req.user._id, updateData, {
+      new: true,
+    });
+
+    sendResponse(res, 200, user, false, "Account details updated");
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
   }
 });
 
