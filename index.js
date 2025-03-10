@@ -32,8 +32,7 @@ connectDB()
     app.use("/cart" , cartRoutes);
     app.use("/order" , orderRoutes);
     app.use("/review" , reviewRoutes);
-    app.use("/uploads" , express.static(path.join(path.resolve(), "uploads")))
-    // app.use("/task", autheUser, taskRoutes);
+    // app.use("/uploads" , express.static(path.join(path.resolve(), "uploads")))
 
     appServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })

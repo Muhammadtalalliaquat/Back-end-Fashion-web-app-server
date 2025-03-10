@@ -37,6 +37,8 @@ import sendResponse from "../helpers/Response.js";
 export const autheUser = async (req, res, next) => {
   try {
     const bearer = req.headers.authorization;
+    console.log("Decoded Token:", bearer);
+
     if (!bearer || !bearer.startsWith("Bearer ")) {
       return sendResponse(
         res,

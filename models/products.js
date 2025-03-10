@@ -9,7 +9,7 @@ const productSchema = new mongoose.Schema({
     image: { type: String, required: true },
     description : { type: String, required: true },
     stock: { type: Number, required: true, default: 0 }
-} , { Timestamp: true });
+} , { timestamps: true });
 
 const Product = mongoose.model("Product" , productSchema);
 
