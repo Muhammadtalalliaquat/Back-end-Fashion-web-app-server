@@ -235,25 +235,61 @@ router.post(`/resetPassword`, async (req, res) => {
   }
 });
 
+
 router.post("/updateAccount", autheUser, async (req, res) => {
   try {
     const { userName, email, password } = req.body;
-
     let updateData = {};
 
     if (userName) updateData.userName = userName;
-    if (email) updateData.email = email;
+    if (email) {
+      const existingUser = await User.findOne({ email });
+      if (
+        existingUser &&
+        existingUser._id.toString() !== req.user._id.toString()
+      ) {
+        return sendResponse(res, 400, null, true, "Email already in use.");
+      }
+      updateData.email = email;
+    }
     if (password) updateData.password = await bcrypt.hash(password, 10);
 
     const user = await User.findByIdAndUpdate(req.user._id, updateData, {
       new: true,
-    });
+    }).select("-password");
 
-    sendResponse(res, 200, user, false, "Account details updated");
+    sendResponse(res, 200, user, false, "Account details updated successfully");
   } catch (error) {
-    sendResponse(res, 500, null, true, error.message);
+    console.error("Update Error:", error);
+    sendResponse(
+      res,
+      500,
+      null,
+      true,
+      "Something went wrong. Please try again."
+    );
   }
 });
+
+// router.post("/updateAccount", autheUser, async (req, res) => {
+//   try {
+//     const { userName, email, password } = req.body;
+
+//     let updateData = {};
+
+//     if (userName) updateData.userName = userName;
+//     if (email) updateData.email = email;
+//     if (password) updateData.password = await bcrypt.hash(password, 10);
+
+//     const user = await User.findByIdAndUpdate(req.user._id, updateData, {
+//       new: true,
+//     });
+
+//     sendResponse(res, 200, user, false, "Account details updated");
+//   } catch (error) {
+//     sendResponse(res, 500, null, true, error.message);
+//   }
+// });
 
 // router.post(`/sendEmail`, (req, res) => {
 //   const { recepientEmail, subject, token } = req.body;
