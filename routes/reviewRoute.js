@@ -9,25 +9,41 @@ const router = express.Router();
 router.post("/addReview", autheUser, async (req, res) => {
   try {
     const { productId, rating, comment } = req.body;
-    let review = await ProductReview.findOne({ userId: req.user._id, productId});
+
+    if (!productId || !rating || !comment) {
+      return sendResponse(res, 400, null, true, "All fields are required.");
+    } 
+    let review = await ProductReview.findOne({
+      userId: req.user._id,
+      productId,
+    }).populate("userId", "userName email");
 
     if (review) {
       review.rating = rating;
       review.comment = comment;
     } else {
       review = new ProductReview({
-        userId: req.user._id,
+        userId: req.user._id.toString(),
         productId,
         rating,
         comment,
+        createdAt: new Date(),
       });
     }
 
     await review.save();
-    const updateReviews = await ProductReview.find({ productId });
-    const avgRating = updateReviews.reduce((acc, review) => acc + review.rating, 0) / updateReviews.length;
 
-    await Product.findByIdAndUpdate( productId, { rating: avgRating});
+    const updateReviews = await ProductReview.find({ productId }).populate(
+      "userId",
+      "userName email"
+    );;
+    const avgRating =
+      updateReviews.reduce((acc, review) => acc + review.rating, 0) /
+      updateReviews.length;
+
+    await Product.findByIdAndUpdate(productId, { rating: avgRating });
+
+    console.log("review data here", updateReviews);
 
     sendResponse(res, 200, updateReviews, false, "Review submitted");
   } catch (error) {
@@ -35,36 +51,50 @@ router.post("/addReview", autheUser, async (req, res) => {
   }
 });
 
-router.get("/productReviews/:productId" , autheUser , async (req , res) => {
-    try{
-        let reviews  = await ProductReview.find({ productId: req.params.productId });
+router.get("/productReviews/:productId", autheUser, async (req, res) => {
+  try {
+    let reviews = await ProductReview.find({
+      productId: req.params.productId,
+    }).populate("userId", "userName email");
 
-        if (!reviews.length) return sendResponse(res, 404, null, true, "No reviews found for this product");
-        
-        sendResponse(res, 200, reviews , false, "Product reviews fetched");
-    } catch (error){
-        sendResponse(res, 500, null, true, error.message);
+    if (!reviews || reviews.length === 0) {
+      return sendResponse(
+        res,
+        200,
+        [],
+        false,
+        "No reviews found for this product"
+      );
     }
+    console.log("reviews data here", reviews);
+
+    sendResponse(res, 200, reviews, false, "Product reviews fetched");
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
+  }
 });
 
-router.delete("/deleteReview/:reviewId" , autheUser , isAdminCheck , async (req , res) => {
-    try{
-        let review = await ProductReview.findById(req.params.reviewId);
+router.delete("/deleteReview/:reviewId", autheUser, isAdminCheck, async (req, res) => {
+    try {
+      let review = await ProductReview.findById(req.params.reviewId);
 
-        if (!review) return sendResponse(res, 404, null, true, "Review not found");
+      if (!review)
+        return sendResponse(res, 404, null, true, "Review not found");
 
-        if(review.userId.toString() !== req.user._id.toString() && !req.user.isAdmin) {
-            return sendResponse(res, 403, null, true, "Not authorized to delete");
-        }
+      if (
+        review.userId.toString() !== req.user._id.toString() &&
+        !req.user.isAdmin
+      ) {
+        return sendResponse(res, 403, null, true, "Not authorized to delete");
+      }
 
-        await ProductReview.findByIdAndDelete(req.params.reviewId);
+      await ProductReview.findByIdAndDelete(req.params.reviewId);
 
-        sendResponse(res, 200, review, false, "Review deleted");
-
-    } catch(error){
-        sendResponse(res, 500, null, true, error.message);
+      sendResponse(res, 200, review, false, "Review deleted");
+    } catch (error) {
+      sendResponse(res, 500, null, true, error.message);
     }
-});
-
+  }
+);
 
 export default router;

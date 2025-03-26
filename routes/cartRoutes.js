@@ -77,12 +77,20 @@ router.delete("/remove/:productId", autheUser, async (req, res) => {
 router.put("/update/:productId", autheUser, async (req, res) => {
   const { quantity } = req.body;
   try {
+    
     const cart = await ProductCart.findOne({ userId: req.user.id });
 
     if (!cart) return sendResponse(res, 404, null, true, "cart not found");
 
+    console.log("Cart before update:", cart);
+    console.log("Product ID from request:", req.params.productId);
+    
+    // const product = cart.products.find(
+    //   (p) => p.productId !== req.params.productId
+    // );
+
     const product = cart.products.find(
-      (p) => p.productId !== req.params.productId
+      (p) => p.productId.toString() === req.params.productId
     );
 
     if (!product)
