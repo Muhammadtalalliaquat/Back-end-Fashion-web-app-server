@@ -8,12 +8,14 @@ const router = express.Router();
 
 router.post("/placeOrder", autheUser, async (req, res) => {
   try {
+
+    const { productId } = req.body;
+     
     const orderItem = await ProductCart.findOne({ userId: req.user._id }).populate(
       "products.productId"
     );
 
-    console.log("Order Items:", orderItem.products);
-
+    
     if (!orderItem) {
       return sendResponse(
         res,
@@ -23,28 +25,62 @@ router.post("/placeOrder", autheUser, async (req, res) => {
         "Cart is empty or does not exist."
       );
     }
-    if (!orderItem.products || orderItem.products.length === 0) {
-      return sendResponse(res, 400, null, true, "Cart is empty.");
+    if (!orderItem || !orderItem.products || orderItem.products.length === 0) {
+      return sendResponse(
+        res,
+        400,
+        null,
+        true,
+        "Cart is empty or does not exist."
+      );
     }
+    // console.log("Order Items:", orderItem.products);
 
-    let totalPrice = orderItem.products.reduce((sum, p) => {
+    let selectedProducts;
+
+    if(productId){
+      selectedProducts = orderItem.products.filter(p => String(p.productId._id) === String(productId))
+      if(selectedProducts.length === 0){
+         return sendResponse(
+           res,
+           404,
+           null,
+           true,
+           "Product not found in cart."
+         );
+        }
+      } else {
+        selectedProducts = orderItem.products;
+      }
+    
+    let totalPrice = selectedProducts.reduce((sum, p) => {
       return sum + p.productId.price * p.quantity;
     }, 0);
 
     let newOrder = new Order({
       userId: req.user._id,
-      products: orderItem.products.map((p) => ({
+      products: selectedProducts.map((p) => ({
         productId: p.productId?._id || p.productId,
         quantity: p.quantity,
       })),
       totalPrice,
-      status: "pending"
+      status: "pending",
     });
 
     await newOrder.save();
-    await ProductCart.findOneAndDelete({ userId: req.user._id });
 
-    sendResponse(res, 201, newOrder, false, "Order placed successfully");
+    orderItem.products = orderItem.products.filter(p => !selectedProducts.some(sp => String(sp.productId._id) === String(p.productId._id)));
+
+     if (orderItem.products.length === 0) {
+       await ProductCart.findOneAndDelete({ userId: req.user._id });
+     } else {
+       await orderItem.save();
+     }
+
+
+    // await ProductCart.findOneAndDelete({ userId: req.user._id });
+
+    sendResponse(res, 201, { order: newOrder }, false, "Order placed successfully");
   } catch (error) {
     sendResponse(res, 500, null, true, error.message);
   }
