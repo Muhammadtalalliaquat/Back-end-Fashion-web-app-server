@@ -52,7 +52,7 @@ export const autheUser = async (req, res, next) => {
     const token = bearer.split(" ")[1];
     const decode = jwt.verify(token, process.env.AUTH_SECRET);
 
-    console.log("Decoded Token:", decode);
+    // console.log("Decoded Token:", decode);
 
     if (!decode?.id) {
       return sendResponse(res, 403, null, true, "Invalid token payload.");
@@ -66,7 +66,7 @@ export const autheUser = async (req, res, next) => {
 
     req.user = user;
 
-    console.log("Authenticated User:", req.user);
+    // console.log("Authenticated User:", req.user);
     next();
   } catch (error) {
     console.error("Authentication Error:", error.message);
@@ -78,13 +78,13 @@ export const autheUser = async (req, res, next) => {
 
 export const isAdminCheck = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.id) {
+    if (!req.user || !req.user._id) {
       return sendResponse(res, 401, null, true, "Unauthorized access");
     }
 
     const user = await User.findById(req.user.id);
 
-    console.log("Decoded Token:", req.user);
+    // console.log("Decoded Token:", req.user);
     console.log("Database User:", user);
 
     if (!user || user.isAdmin !== true) {
