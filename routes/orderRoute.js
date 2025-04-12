@@ -98,10 +98,12 @@ router.post("/placeOrder", autheUser, async (req, res) => {
   }
 });
 
-router.get("/allOrders", autheUser, isAdminCheck, async (req, res) => {
+router.get("/allOrders", autheUser, async (req, res) => {
   try {
-    const orders = await Order.find()
-      .populate("userId", "userName email")
+    const filter = req.user.isAdmin ? {} : { userId: req.user._id };
+
+    const orders = await Order.find(filter)
+      .populate("userId", "userName email isAdmin")
       .populate("products.productId");
     sendResponse(res, 200, orders, false, "All orders retrieved");
   } catch (error) {
