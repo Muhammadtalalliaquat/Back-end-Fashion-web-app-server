@@ -9,6 +9,15 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
+    const product = await Product.find().limit(8);
+    sendResponse(res, 200, product, false, "Product fetch successfully");
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
+  }
+});
+
+router.get("/allProducts", async (req, res) => {
+  try {
     const product = await Product.find();
     sendResponse(res, 200, product, false, "Product fetch successfully");
   } catch (error) {

@@ -1,7 +1,7 @@
 import express from "express";
 import sendResponse from "../helpers/Response.js";
 import ProductCart from "../models/productCart.js";
-// import Product from "../models/products.js";
+import Product from "../models/products.js";
 import Order from "../models/order.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 
@@ -11,92 +11,168 @@ router.post("/placeOrder", autheUser, async (req, res) => {
   try {
     const { productId, country, city, area, quantity } = req.body;
 
-    const orderItem = await ProductCart.findOne({
-      userId: req.user._id,
-    }).populate("products.productId");
-
-    if (!orderItem || !orderItem.products || orderItem.products.length === 0) {
-      return sendResponse(
-        res,
-        400,
-        null,
-        true,
-        "Cart is empty or does not exist."
-      );
-    }
-    // console.log("Order Items:", orderItem.products);
-
-    let selectedProducts;
+    let selectedProducts = [];
+    let totalPrice = 0;
 
     if (productId) {
-      selectedProducts = orderItem.products.filter(
-        (p) => String(p.productId._id) === String(productId)
-      );
-      if (selectedProducts.length === 0) {
-        return sendResponse(res, 404, null, true, "Product not found in cart.");
+      // 🛒 Direct Buy
+      const product = await Product.findById(productId);
+      if (!product) {
+        return sendResponse(res, 404, null, true, "Product not found.");
       }
+
+      selectedProducts.push({
+        productId: product._id,
+        quantity: quantity || 1,
+        price: product.price,
+      });
+
+      totalPrice = product.price * (quantity || 1);
     } else {
-      selectedProducts = orderItem.products;
-    }
+      // 🛍 From Cart
+      const cart = await ProductCart.findOne({
+        userId: req.user._id,
+      }).populate("products.productId");
 
-    if (quantity) {
-      selectedProducts = selectedProducts.map((p) => ({
-        productId: p.productId._id, // Ensure the productId is preserved
-        quantity: quantity,
-        price: p.productId?.price || 0,
+      if (!cart || !cart.products || cart.products.length === 0) {
+        return sendResponse(res, 400, null, true, "Cart is empty.");
+      }
+
+      selectedProducts = cart.products.map((item) => ({
+        productId: item.productId._id,
+        quantity: item.quantity,
+        price: item.productId.price,
       }));
+
+      totalPrice = selectedProducts.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
     }
 
-    // let totalPrice = selectedProducts.reduce((sum, p) => {
-    //   return sum + p.productId.price * p.quantity;
-    // }, 0);
-    let totalPrice = selectedProducts.reduce((sum, p) => {
-      return sum + (p.price || 0) * p.quantity; // Use the price after update
-    }, 0);
-
-    let newOrder = new Order({
+    // ✅ Create Order
+    const newOrder = new Order({
       userId: req.user._id,
       products: selectedProducts.map((p) => ({
-        productId: p.productId?._id,
+        productId: p.productId,
         quantity: p.quantity,
       })),
       totalPrice,
       status: "pending",
-      address: {
-        country,
-        city,
-        area,
-      },
+      address: { country, city, area },
     });
 
     await newOrder.save();
 
-    orderItem.products = orderItem.products.filter(
-      (p) =>
-        !selectedProducts.some(
-          (sp) => String(sp.productId._id) === String(p.productId._id)
-        )
-    );
-
-    if (orderItem.products.length === 0) {
+    // 🧹 Remove items from cart if ordered from cart
+    if (productId) {
       await ProductCart.findOneAndDelete({ userId: req.user._id });
-    } else {
-      await orderItem.save();
     }
 
-    // await ProductCart.findOneAndDelete({ userId: req.user._id });
-
-    sendResponse(
+    return sendResponse(
       res,
       201,
       { order: newOrder },
       false,
-      "Order placed successfully"
+      "Order placed successfully."
     );
   } catch (error) {
-    sendResponse(res, 500, null, true, error.message);
+    console.error(error);
+    return sendResponse(res, 500, null, true, "Something went wrong.");
   }
 });
+
+
+// router.post("/placeOrder", autheUser, async (req, res) => {
+//   try {
+//     const { productId, country, city, area, quantity } = req.body;
+
+//     const orderItem = await Product.findById({
+//       userId: req.user._id,
+//     }).populate("products.productId");
+
+//     if (!orderItem || !orderItem.products || orderItem.products.length === 0) {
+//       return sendResponse(
+//         res,
+//         400,
+//         null,
+//         true,
+//         "Cart is empty or does not exist."
+//       );
+//     }
+//     // console.log("Order Items:", orderItem.products);
+
+//     let selectedProducts;
+
+//     if (productId) {
+//       selectedProducts = orderItem.products.filter(
+//         (p) => String(p.productId._id) === String(productId)
+//       );
+//       if (selectedProducts.length === 0) {
+//         return sendResponse(res, 404, null, true, "Product not found in cart.");
+//       }
+//     } else {
+//       selectedProducts = orderItem.products;
+//     }
+
+//     if (quantity) {
+//       selectedProducts = selectedProducts.map((p) => ({
+//         productId: p.productId._id, // Ensure the productId is preserved
+//         quantity: quantity,
+//         price: p.productId?.price || 0,
+//       }));
+//     }
+
+//     // let totalPrice = selectedProducts.reduce((sum, p) => {
+//     //   return sum + p.productId.price * p.quantity;
+//     // }, 0);
+//     let totalPrice = selectedProducts.reduce((sum, p) => {
+//       return sum + (p.price || 0) * p.quantity; // Use the price after update
+//     }, 0);
+
+//     let newOrder = new Order({
+//       userId: req.user._id,
+//       products: selectedProducts.map((p) => ({
+//         productId: p.productId?._id,
+//         quantity: p.quantity,
+//       })),
+//       totalPrice,
+//       status: "pending",
+//       address: {
+//         country,
+//         city,
+//         area,
+//       },
+//     });
+
+//     await newOrder.save();
+
+//     orderItem.products = orderItem.products.filter(
+//       (p) =>
+//         !selectedProducts.some(
+//           (sp) => String(sp.productId._id) === String(p.productId._id)
+//         )
+//     );
+
+//     if (orderItem.products.length === 0) {
+//       await ProductCart.findOneAndDelete({ userId: req.user._id });
+//     } else {
+//       await orderItem.save();
+//     }
+
+//     // await ProductCart.findOneAndDelete({ userId: req.user._id });
+
+//     sendResponse(
+//       res,
+//       201,
+//       { order: newOrder },
+//       false,
+//       "Order placed successfully"
+//     );
+//   } catch (error) {
+//     sendResponse(res, 500, null, true, error.message);
+//   }
+// });
 
 router.get("/allOrders", autheUser, async (req, res) => {
   try {
