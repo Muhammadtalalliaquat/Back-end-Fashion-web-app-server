@@ -2,6 +2,7 @@ import express from "express";
 import sendResponse from "../helpers/Response.js";
 import ProductCart from "../models/productCart.js";
 import Product from "../models/products.js";
+import SaleDiscount from "../models/disconutOffer.js";
 import Order from "../models/order.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 
@@ -15,7 +16,6 @@ router.post("/placeOrder", autheUser, async (req, res) => {
     let totalPrice = 0;
 
     if (productId) {
-      // 🛒 Direct Buy
       const product = await Product.findById(productId);
       if (!product) {
         return sendResponse(res, 404, null, true, "Product not found.");
@@ -28,8 +28,8 @@ router.post("/placeOrder", autheUser, async (req, res) => {
       });
 
       totalPrice = product.price * (quantity || 1);
+     
     } else {
-      // 🛍 From Cart
       const cart = await ProductCart.findOne({
         userId: req.user._id,
       }).populate("products.productId");
@@ -50,7 +50,6 @@ router.post("/placeOrder", autheUser, async (req, res) => {
       );
     }
 
-    // ✅ Create Order
     const newOrder = new Order({
       userId: req.user._id,
       products: selectedProducts.map((p) => ({
@@ -64,7 +63,6 @@ router.post("/placeOrder", autheUser, async (req, res) => {
 
     await newOrder.save();
 
-    // 🧹 Remove items from cart if ordered from cart
     if (productId) {
       await ProductCart.findOneAndDelete({ userId: req.user._id });
     }

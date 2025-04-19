@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 const saleDiscountSchema = new mongoose.Schema({
-  productName: {
+  name: {
     type: String,
     required: true,
   },
-  originalPrice: {
+  price: {
     type: Number,
     required: true,
   },
@@ -14,9 +14,9 @@ const saleDiscountSchema = new mongoose.Schema({
     required: true,
   },
   image: {
-  type: String,
-  required: true,
-},
+    type: String,
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

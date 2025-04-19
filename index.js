@@ -5,6 +5,7 @@ import cartRoutes  from "./routes/cartRoutes.js";
 import orderRoutes  from "./routes/orderRoute.js";
 import reviewRoutes  from "./routes/reviewRoute.js";
 import SaleDiscountRoutes from "./routes/salesDiscount.js";
+import SaleDiscountOrderRoutes from "./routes/saleDiscountOrderRoute.js";
 import morgan from "morgan";
 import connectDB from "./database/data.js";
 import cors from "cors";
@@ -34,6 +35,7 @@ connectDB()
     app.use("/order" , orderRoutes);
     app.use("/review" , reviewRoutes);
     app.use("/sale-discounts", SaleDiscountRoutes);
+    app.use("/saleDiscountsOrder", SaleDiscountOrderRoutes);
     // app.use("/uploads" , express.static(path.join(path.resolve(), "uploads")))
 
     appServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));

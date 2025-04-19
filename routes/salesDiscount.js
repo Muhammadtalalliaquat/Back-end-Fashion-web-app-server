@@ -38,8 +38,8 @@ router.post("/addDiscount", autheUser, isAdminCheck, upload.single("image"), asy
       console.log("Auto Cropped Image URL:", autoCropUrl);
 
       const newDiscount = new SaleDiscount({
-        productName,
-        originalPrice,
+        name: productName,
+        price: originalPrice,
         discountPrice,
         image: optimizeUrl,
       });
@@ -74,8 +74,8 @@ router.get("/", async (req, res) => {
 
 router.put("/updateDiscountOffer/:id", autheUser, isAdminCheck, upload.single("image"), async (req, res) => {
     try {
-      const { productName, originalPrice, discountPrice } = req.body;
-      const updateData = { productName, originalPrice, discountPrice };
+      const { name, price, discountPrice } = req.body;
+      const updateData = { name, price, discountPrice };
 
       const b64 = Buffer.from(req.file.buffer).toString("base64");
       const imageUrl = `data:${req.file.mimetype};base64,${b64}`;
