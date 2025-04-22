@@ -2,7 +2,7 @@ import express from "express";
 import sendResponse from "../helpers/Response.js";
 import SaleDiscount from "../models/disconutOffer.js";
 import SaleDiscountOrder from "../models/SaleDiscountOrder.js";
-import { autheUser } from "../middleware/authUser.js";
+import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 
 const router = express.Router();
 
@@ -21,15 +21,15 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
       );
     }
 
-    // const quantity = 1;
-    // const totalPrice = product.discountPrice * quantity;
+    const quantity = 1;
+    const totalPrice = product.discountPrice * quantity;
 
     const newOrder = new SaleDiscountOrder({
       userId: req.user._id,
       productId: product._id,
-    //   quantity,
-    //   totalPrice,
-      price,
+      quantity,
+      totalPrice,
+      price: product.discountPrice,
       address: { country, city, area },
     });
 
@@ -51,16 +51,59 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
 
 router.get("/getSalesOrders", autheUser, async (req, res) => {
   try {
-    const salesOrders = await SaleDiscountOrder.find({ userId: req.user._id })
+    const filter = req.user.isAdmin ? {} : { userId: req.user._id };
+    const salesOrders = await SaleDiscountOrder.find(filter)
       .populate("userId", "userName email isAdmin")
       .populate("productId", "name image discountPrice")
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1 });
 
     sendResponse(res, 200, salesOrders, false, "All sales orders retrieved");
   } catch (error) {
     sendResponse(res, 500, null, true, error.message);
   }
 });
+
+
+router.put("/updateDiscountOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
+    const { status } = req.body;
+    const { orderId } = req.params;
+
+    try {
+      const validStatuses = [
+        "pending",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ];
+      if (!validStatuses.includes(status)) {
+        return sendResponse(res, 400, null, true, "Invalid status");
+      }
+
+      const order = await SaleDiscountOrder.findByIdAndUpdate(
+        orderId,
+        { status },
+        { new: true }
+      );
+      
+      if (!order) return sendResponse(res, 404, null, true, "Order not found");
+
+      if (status === "delivered") {
+        await SaleDiscountOrder.findByIdAndDelete(orderId);
+        return sendResponse(
+          res,
+          200,
+          null,
+          false,
+          "Discount Order delivered and removed from database"
+        );
+      }
+      sendResponse(res, 200, order, false, "Discount Order status updated");
+    } catch (error) {
+      sendResponse(res, 500, null, true, error.message);
+    }
+  }
+);
 
 
 export default router;
