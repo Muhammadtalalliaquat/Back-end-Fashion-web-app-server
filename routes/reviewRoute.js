@@ -51,7 +51,7 @@ router.post("/addReview", autheUser, async (req, res) => {
   }
 });
 
-router.get("/productReviews/:productId", autheUser, async (req, res) => {
+router.get("/productReviews/:productId", async (req, res) => {
   try {
     let reviews = await ProductReview.find({
       productId: req.params.productId,
