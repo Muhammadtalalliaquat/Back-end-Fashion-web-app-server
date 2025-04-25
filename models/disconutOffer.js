@@ -23,5 +23,5 @@ const saleDiscountSchema = new mongoose.Schema({
   },
 });
 
-const SaleDiscount = mongoose.model("SaleDiscount", saleDiscountSchema);
-export default SaleDiscount;
+const SaleDiscountProduct = mongoose.model("SaleDiscountProduct", saleDiscountSchema);
+export default SaleDiscountProduct;

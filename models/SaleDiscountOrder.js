@@ -6,7 +6,7 @@ const saleDiscountOrderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   productId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "SaleDiscount",
+    ref: "SaleDiscountProduct",
     required: true,
   },
   quantity: { type: Number, default: 1 },

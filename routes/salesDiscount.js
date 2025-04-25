@@ -1,9 +1,15 @@
 import express from "express";
 import sendResponse from "../helpers/Response.js";
-import SaleDiscount from "../models/disconutOffer.js";
+import SaleDiscountProduct from "../models/disconutOffer.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 import upload from "../middleware/uploadImage.js";
 import cloudinary from "../config/cloudinary.js";
+// import dayjs from "dayjs";
+// import utc from "dayjs/plugin/utc.js";
+
+// dayjs.extend(utc);
+
+
 
 const router = express.Router();
 
@@ -37,7 +43,7 @@ router.post("/addDiscount", autheUser, isAdminCheck, upload.single("image"), asy
 
       console.log("Auto Cropped Image URL:", autoCropUrl);
 
-      const newDiscount = new SaleDiscount({
+      const newDiscount = new SaleDiscountProduct({
         name: productName,
         price: originalPrice,
         discountPrice,
@@ -59,7 +65,7 @@ router.post("/addDiscount", autheUser, isAdminCheck, upload.single("image"), asy
 
 router.get("/", async (req, res) => {
   try {
-    const discounts = await SaleDiscount.find().sort({ createdAt: -1 });
+    const discounts = await SaleDiscountProduct.find().sort({ createdAt: -1 });
     sendResponse(
       res,
       200,
@@ -74,8 +80,8 @@ router.get("/", async (req, res) => {
 
 router.put("/updateDiscountOffer/:id", autheUser, isAdminCheck, upload.single("image"), async (req, res) => {
     try {
-      const { name, price, discountPrice } = req.body;
-      const updateData = { name, price, discountPrice };
+      const { name, originalPrice, discountPrice } = req.body;
+      const updateData = { name, originalPrice, discountPrice };
 
       const b64 = Buffer.from(req.file.buffer).toString("base64");
       const imageUrl = `data:${req.file.mimetype};base64,${b64}`;
@@ -97,13 +103,14 @@ router.put("/updateDiscountOffer/:id", autheUser, isAdminCheck, upload.single("i
         const optimizedImage = cloudinary.url(uploadResult.public_id, {
           fetch_format: "auto",
           quality: "auto",
+          secure: true,
         });
 
         updateData.image = optimizedImage;
       }
 
 
-      const updated = await SaleDiscount.findByIdAndUpdate(
+      const updated = await SaleDiscountProduct.findByIdAndUpdate(
         req.params.id,
         updateData,
         { new: true }
@@ -116,7 +123,7 @@ router.put("/updateDiscountOffer/:id", autheUser, isAdminCheck, upload.single("i
       sendResponse(
         res,
         200,
-        updated,
+        { updated },
         false,
         "sales disconut offer Product updated successfully"
       );
@@ -125,6 +132,28 @@ router.put("/updateDiscountOffer/:id", autheUser, isAdminCheck, upload.single("i
     }
   }
 );
+
+
+router.delete("/deleteDiscountOffer/:id", autheUser, isAdminCheck, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedProduct = await SaleDiscountProduct.findByIdAndDelete(id);
+    if (!deletedProduct) {
+      return res.status(404).json({ message: "Discount offer Product not found" });
+    }
+
+    sendResponse(
+      res,
+      201,
+      deletedProduct,
+      false,
+      "Discount offer Product deleted successfully"
+    );
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
+  }
+});
 
 
 export default router;

@@ -1,6 +1,6 @@
 import express from "express";
 import sendResponse from "../helpers/Response.js";
-import SaleDiscount from "../models/disconutOffer.js";
+import SaleDiscountProduct from "../models/disconutOffer.js";
 import SaleDiscountOrder from "../models/SaleDiscountOrder.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 
@@ -10,7 +10,7 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
   try {
     const { productId, country, city, area } = req.body;
 
-    const product = await SaleDiscount.findById(productId);
+    const product = await SaleDiscountProduct.findById(productId);
     if (!product) {
       return sendResponse(
         res,

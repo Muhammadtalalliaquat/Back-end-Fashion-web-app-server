@@ -136,7 +136,7 @@ router.put("/edit/:id", autheUser, isAdminCheck, upload.single("image"), async (
       sendResponse(
         res,
         201,
-        { product: updatedProduct },
+        { product: updatedProduct, type: "product" },
         false,
         "Product updated successfully"
       );
