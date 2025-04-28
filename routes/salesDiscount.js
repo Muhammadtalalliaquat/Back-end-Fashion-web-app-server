@@ -4,11 +4,6 @@ import SaleDiscountProduct from "../models/disconutOffer.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 import upload from "../middleware/uploadImage.js";
 import cloudinary from "../config/cloudinary.js";
-// import dayjs from "dayjs";
-// import utc from "dayjs/plugin/utc.js";
-
-// dayjs.extend(utc);
-
 
 
 const router = express.Router();
