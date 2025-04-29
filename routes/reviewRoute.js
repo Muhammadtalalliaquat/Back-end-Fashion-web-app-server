@@ -36,7 +36,7 @@ router.post("/addReview", autheUser, async (req, res) => {
     const updateReviews = await ProductReview.find({ productId }).populate(
       "userId",
       "userName email"
-    );;
+    );
     const avgRating =
       updateReviews.reduce((acc, review) => acc + review.rating, 0) /
       updateReviews.length;
