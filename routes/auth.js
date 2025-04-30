@@ -10,13 +10,18 @@ import { autheUser } from "../middleware/authUser.js";
 
 const router = express.Router();
 
+
 const registerSchema = Joi.object({
-  userName: Joi.string().min(3).max(20).required(),
-  email: Joi.string().email().required(),
+  email: Joi.string()
+    .pattern(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)
+    .required()
+    .messages({
+      "string.pattern.base": "Email must be a valid Gmail address",
+    }),
   password: Joi.string().min(6).required(),
-  // city: Joi.string().optional().allow(""),
-  // country: Joi.string().optional().allow(""),
+  userName: Joi.string().min(3).required(),
 });
+
 
 const loginSchema = Joi.object({
   email: Joi.string().email().required(),

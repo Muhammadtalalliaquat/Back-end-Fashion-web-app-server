@@ -8,6 +8,7 @@ import SaleDiscountRoutes from "./routes/salesDiscount.js";
 import SaleDiscountOrderRoutes from "./routes/saleDiscountOrderRoute.js";
 import contactRoute from "./routes/contactRoute.js";
 import feedBackRoute from "./routes/feedBackRoute.js";
+import subscribeRoute from "./routes/subscribeRoute.js";
 import morgan from "morgan";
 import connectDB from "./database/data.js";
 import cors from "cors";
@@ -40,6 +41,7 @@ connectDB()
     app.use("/saleDiscountsOrder", SaleDiscountOrderRoutes);
     app.use("/contact-us", contactRoute);
     app.use("/feed-back", feedBackRoute);
+    app.use("/Subscriber", subscribeRoute);
     // app.use("/uploads" , express.static(path.join(path.resolve(), "uploads")))
 
     appServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));
