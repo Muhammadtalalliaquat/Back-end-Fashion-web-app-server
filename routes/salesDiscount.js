@@ -10,7 +10,17 @@ const router = express.Router();
 
 router.post("/addDiscount", autheUser, isAdminCheck, upload.single("image"), async (req, res) => {
     try {
-      const { productName, originalPrice, discountPrice } = req.body;
+      const {
+        productName,
+        description,
+        SalesCategory,
+        originalPrice,
+        discountPrice,
+        inStock,
+        offerTitle,
+        offerDescription,
+        expiresAt,
+      } = req.body;
 
       const b64 = Buffer.from(req.file.buffer).toString("base64");
       const imageUrl = `data:${req.file.mimetype};base64,${b64}`;
@@ -38,12 +48,19 @@ router.post("/addDiscount", autheUser, isAdminCheck, upload.single("image"), asy
 
       console.log("Auto Cropped Image URL:", autoCropUrl);
 
-      const newDiscount = new SaleDiscountProduct({
-        name: productName,
-        price: originalPrice,
-        discountPrice,
-        image: optimizeUrl,
-      });
+       const newDiscount = new SaleDiscountProduct({
+         name: productName,
+         description,
+         SalesCategory,
+         price: originalPrice,
+         discountPrice,
+         image: optimizeUrl,
+         inStock: inStock,
+         offerTitle,
+         offerDescription,
+         expiresAt: expiresAt ? new Date(expiresAt) : null,
+       });
+
       const saved = await newDiscount.save();
       sendResponse(
         res,
@@ -75,8 +92,29 @@ router.get("/", async (req, res) => {
 
 router.put("/updateDiscountOffer/:id", autheUser, isAdminCheck, upload.single("image"), async (req, res) => {
     try {
-      const { name, originalPrice, discountPrice } = req.body;
-      const updateData = { name, originalPrice, discountPrice };
+      const {
+        name,
+        description,
+        SalesCategory,
+        originalPrice,
+        discountPrice,
+        inStock,
+        offerTitle,
+        offerDescription,
+        expiresAt,
+      } = req.body;
+
+      const updateData = {
+        name,
+        description,
+        SalesCategory,
+        price: originalPrice,
+        discountPrice,
+        inStock,
+        offerTitle,
+        offerDescription,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      };
 
       const b64 = Buffer.from(req.file.buffer).toString("base64");
       const imageUrl = `data:${req.file.mimetype};base64,${b64}`;

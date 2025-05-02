@@ -4,6 +4,17 @@ const saleDiscountSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    trim: true,
+  },
+  description: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  SalesCategory: {
+    type: String,
+    required: true,
+    trim: true,
   },
   price: {
     type: Number,
@@ -13,9 +24,27 @@ const saleDiscountSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  inStock: {
+    type: Number,
+    default: true,
+  },
+  offerTitle: {
+    type: String,
+    required: false,
+    trim: true,
+  },
+  offerDescription: {
+    type: String,
+    required: false,
+    trim: true,
+  },
   image: {
     type: String,
     required: true,
+  },
+  expiresAt: {
+    type: Date,
+    required: false,
   },
   createdAt: {
     type: Date,
@@ -23,5 +52,9 @@ const saleDiscountSchema = new mongoose.Schema({
   },
 });
 
-const SaleDiscountProduct = mongoose.model("SaleDiscountProduct", saleDiscountSchema);
+const SaleDiscountProduct = mongoose.model(
+  "SaleDiscountProduct",
+  saleDiscountSchema
+);
+
 export default SaleDiscountProduct;
