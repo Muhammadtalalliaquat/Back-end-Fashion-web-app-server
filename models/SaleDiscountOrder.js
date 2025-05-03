@@ -16,11 +16,14 @@ const saleDiscountOrderSchema = new mongoose.Schema({
     enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
     default: "pending",
   },
-  address: {
-    country: String,
-    city: String,
-    area: String,
-  },
+  email: { type: String, required: true, unique: true },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  address: { type: String, required: true },
+  city: { type: String, required: true },
+  posterCode: { type: Number, required: true },
+  phone: { type: Number, required: true },
+  createdAt: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
 });
 
