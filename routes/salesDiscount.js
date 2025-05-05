@@ -12,7 +12,7 @@ router.post("/addDiscount", autheUser, isAdminCheck, upload.single("image"), asy
     try {
       const {
         productName,
-        description,
+        // description,
         SalesCategory,
         originalPrice,
         discountPrice,
@@ -50,7 +50,6 @@ router.post("/addDiscount", autheUser, isAdminCheck, upload.single("image"), asy
 
        const newDiscount = new SaleDiscountProduct({
          name: productName,
-         description,
          SalesCategory,
          price: originalPrice,
          discountPrice,
@@ -77,7 +76,27 @@ router.post("/addDiscount", autheUser, isAdminCheck, upload.single("image"), asy
 
 router.get("/", async (req, res) => {
   try {
-    const discounts = await SaleDiscountProduct.find().sort({ createdAt: -1 });
+    const discounts = await SaleDiscountProduct.find()
+      .sort({ createdAt: 1 })
+      .limit(3);
+
+    const lastThreeSorted = discounts.reverse();
+    sendResponse(
+      res,
+      200,
+      lastThreeSorted,
+      false,
+      "discounts fetch product successfully"
+    );
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
+  }
+});
+
+router.get("/getAllProducts", async (req, res) => {
+  try {
+    const discounts = await SaleDiscountProduct.find()
+      .sort({ createdAt: -1 });
     sendResponse(
       res,
       200,
