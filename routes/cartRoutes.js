@@ -2,6 +2,7 @@ import express from "express";
 import ProductCart from "../models/productCart.js";
 import sendResponse from "../helpers/Response.js";
 import { autheUser } from "../middleware/authUser.js";
+import SaleDiscountProduct from "../models/disconutOffer.js";
 
 const router = express.Router();
 
@@ -20,14 +21,14 @@ router.get("/getCart", autheUser, async (req, res) => {
   }
 });
 
+
 router.post("/addCart", autheUser, async (req, res) => {
   const { productId, quantity } = req.body;
-  // console.log("Request User:", req.user);
-  // console.log("Request Body:", req.body);
+
   try {
     let cart = await ProductCart.findOne({ userId: req.user._id });
 
-    if (!cart || !cart.products || cart.length === 0) {
+    if (!cart || !cart.products || cart.products.length === 0) {
       cart = new ProductCart({ userId: req.user._id, products: [] });
     }
 
@@ -38,12 +39,14 @@ router.post("/addCart", autheUser, async (req, res) => {
     if (existingProduct) {
       existingProduct.quantity += quantity || 1;
     } else {
-      cart.products.push({ productId, quantity });
+      const isSaleProduct = await SaleDiscountProduct.findById(productId);
+      const productModel = isSaleProduct ? "SaleDiscountProduct" : "Product";
+
+      cart.products.push({ productId, productModel, quantity });
     }
 
     await cart.save();
 
-    // **Populate product details before sending response**
     const updatedCart = await ProductCart.findById(cart._id).populate(
       "products.productId"
     );
@@ -53,6 +56,41 @@ router.post("/addCart", autheUser, async (req, res) => {
     sendResponse(res, 500, null, true, error.message);
   }
 });
+
+
+// router.post("/addCart", autheUser, async (req, res) => {
+//   const { productId, quantity } = req.body;
+//   // console.log("Request User:", req.user);
+//   // console.log("Request Body:", req.body);
+//   try {
+//     let cart = await ProductCart.findOne({ userId: req.user._id });
+
+//     if (!cart || !cart.products || cart.length === 0) {
+//       cart = new ProductCart({ userId: req.user._id, products: [] });
+//     }
+
+//     const existingProduct = cart.products.find(
+//       (p) => p.productId.toString() === productId
+//     );
+
+//     if (existingProduct) {
+//       existingProduct.quantity += quantity || 1;
+//     } else {
+//       cart.products.push({ productId, quantity });
+//     }
+
+//     await cart.save();
+
+//     // **Populate product details before sending response**
+//     const updatedCart = await ProductCart.findById(cart._id).populate(
+//       "products.productId"
+//     );
+
+//     sendResponse(res, 200, updatedCart, false, "Product added to cart");
+//   } catch (error) {
+//     sendResponse(res, 500, null, true, error.message);
+//   }
+// });
 
 router.delete("/remove/:productId", autheUser, async (req, res) => {
   try {
