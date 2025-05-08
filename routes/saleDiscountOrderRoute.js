@@ -2,6 +2,7 @@ import express from "express";
 import sendResponse from "../helpers/Response.js";
 import SaleDiscountProduct from "../models/disconutOffer.js";
 import SaleDiscountOrder from "../models/SaleDiscountOrder.js";
+import ProductCart from "../models/productCart.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 import Joi from "joi";
 
@@ -56,42 +57,68 @@ const shppingSchema = Joi.object({
 router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
   try {
     const { error, value } = shppingSchema.validate(req.body);
-    
-        if (error) {
-          return sendResponse(res, 201, null, true, error.details[0].message);
-        }
-    
-        const {
-          productId,
-          email,
-          firstName,
-          lastName,
-          city,
-          address,
-          posterCode,
-          phone,
-        } = value;
 
-    const product = await SaleDiscountProduct.findById(productId);
-    if (!product) {
-      return sendResponse(
-        res,
-        404,
-        null,
-        true,
-        "Discounted product not found."
+    let selectedProducts = [];
+    let totalPrice = 0;
+
+    if (error) {
+      return sendResponse(res, 201, null, true, error.details[0].message);
+    }
+
+    const {
+      productId,
+      email,
+      firstName,
+      lastName,
+      city,
+      address,
+      quantity,
+      posterCode,
+      phone,
+    } = value;
+
+    if (productId) {
+      const product = await SaleDiscountProduct.findById(productId);
+      if (!product) {
+        return sendResponse(res, 404, null, true, "Product not found.");
+      }
+
+      selectedProducts.push({
+        productId: product._id,
+        quantity: quantity || 1,
+        price: product.discountPrice,
+      });
+
+      totalPrice = product.discountPrice * (quantity || 1);
+    } else {
+      const cart = await ProductCart.findOne({
+        userId: req.user._id,
+      }).populate("products.productId");
+
+      if (!cart || !cart.products || cart.products.length === 0) {
+        return sendResponse(res, 400, null, true, "Cart is empty.");
+      }
+
+      selectedProducts = cart.products.map((item) => ({
+        productId: item.productId._id,
+        quantity: item.quantity,
+        price: item.productId.price,
+      }));
+
+      totalPrice = selectedProducts.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
       );
     }
 
-    const quantity = 1;
-    const totalPrice = product.discountPrice * quantity;
-
     const newOrder = new SaleDiscountOrder({
       userId: req.user._id,
-      productId: product._id,
-      quantity,
+      products: selectedProducts.map((p) => ({
+        productId: p.productId,
+        quantity: p.quantity,
+      })),
+
       totalPrice,
-      price: product.discountPrice,
       email,
       firstName,
       lastName,
@@ -99,10 +126,23 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
       city,
       posterCode,
       phone,
-      // address: { country, city, area },
     });
 
     await newOrder.save();
+
+    await Promise.all(
+      selectedProducts.map(async (p) => {
+        await SaleDiscountProduct.findByIdAndUpdate(
+          p.productId,
+          { $inc: { inStock: -p.quantity } },
+          { new: true }
+        );
+      })
+    );
+
+    if (productId) {
+      await ProductCart.findOneAndDelete({ userId: req.user._id });
+    }
 
     return sendResponse(
       res,
@@ -117,13 +157,12 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
   }
 });
 
-
 router.get("/getSalesOrders", autheUser, async (req, res) => {
   try {
     const filter = req.user.isAdmin ? {} : { userId: req.user._id };
     const salesOrders = await SaleDiscountOrder.find(filter)
       .populate("userId", "userName email isAdmin")
-      .populate("productId", "name image discountPrice")
+      .populate("products.productId")
       .sort({ createdAt: -1 });
 
     sendResponse(res, 200, salesOrders, false, "All sales orders retrieved");
@@ -132,8 +171,11 @@ router.get("/getSalesOrders", autheUser, async (req, res) => {
   }
 });
 
-
-router.put("/updateDiscountOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
+router.put(
+  "/updateDiscountOrder/:orderId",
+  autheUser,
+  isAdminCheck,
+  async (req, res) => {
     const { status } = req.body;
     const { orderId } = req.params;
 
@@ -154,7 +196,7 @@ router.put("/updateDiscountOrder/:orderId", autheUser, isAdminCheck, async (req,
         { status },
         { new: true }
       );
-      
+
       if (!order) return sendResponse(res, 404, null, true, "Order not found");
 
       if (status === "delivered") {
@@ -173,6 +215,5 @@ router.put("/updateDiscountOrder/:orderId", autheUser, isAdminCheck, async (req,
     }
   }
 );
-
 
 export default router;

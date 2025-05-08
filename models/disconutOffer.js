@@ -6,11 +6,7 @@ const saleDiscountSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
-  // description: {
-  //   type: String,
-  //   required: true,
-  //   trim: true,
-  // },
+
   SalesCategory: {
     type: String,
     required: true,
@@ -26,7 +22,7 @@ const saleDiscountSchema = new mongoose.Schema({
   },
   inStock: {
     type: Number,
-    default: true,
+    required: true,
   },
   offerTitle: {
     type: String,
