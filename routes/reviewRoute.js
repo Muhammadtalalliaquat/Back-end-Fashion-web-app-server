@@ -2,6 +2,7 @@ import express from "express";
 import ProductReview from "../models/productReview.js";
 import Product from "../models/products.js";
 import sendResponse from "../helpers/Response.js";
+import SaleDiscountProduct from "../models/disconutOffer.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 
 const router = express.Router();
@@ -12,10 +13,14 @@ router.post("/addReview", autheUser, async (req, res) => {
 
     if (!productId || !rating || !comment) {
       return sendResponse(res, 400, null, true, "All fields are required.");
-    } 
+    }
+
+    const isSaleProduct = await SaleDiscountProduct.findById(productId);
+
     let review = await ProductReview.findOne({
       userId: req.user._id,
-      productId,
+      "products.productId": productId,
+      // productId,
     }).populate("userId", "userName email");
 
     if (review) {
@@ -24,7 +29,13 @@ router.post("/addReview", autheUser, async (req, res) => {
     } else {
       review = new ProductReview({
         userId: req.user._id.toString(),
-        productId,
+        // productId,
+        products: [
+          {
+            productId,
+            productModel: isSaleProduct ? "SaleDiscountProduct" : "Product",
+          },
+        ],
         rating,
         comment,
         createdAt: new Date(),
@@ -33,17 +44,24 @@ router.post("/addReview", autheUser, async (req, res) => {
 
     await review.save();
 
-    const updateReviews = await ProductReview.find({ productId }).populate(
-      "userId",
-      "userName email"
-    );
+    const updateReviews = await ProductReview.find({
+      "products.productId": productId,
+    }).populate("userId", "userName email");
+
     const avgRating =
       updateReviews.reduce((acc, review) => acc + review.rating, 0) /
       updateReviews.length;
 
-    await Product.findByIdAndUpdate(productId, { rating: avgRating });
+    if (isSaleProduct) {
+      await SaleDiscountProduct.findByIdAndUpdate(productId, {
+        rating: avgRating,
+      });
+    } else {
+      await Product.findByIdAndUpdate(productId, { rating: avgRating });
+    }
+    // await Product.findByIdAndUpdate(productId, { rating: avgRating });
 
-    console.log("review data here", updateReviews);
+    console.log("review data here", avgRating);
 
     sendResponse(res, 200, updateReviews, false, "Review submitted");
   } catch (error) {
@@ -54,7 +72,7 @@ router.post("/addReview", autheUser, async (req, res) => {
 router.get("/productReviews/:productId", async (req, res) => {
   try {
     let reviews = await ProductReview.find({
-      productId: req.params.productId,
+      "products.productId": req.params.productId,
     }).populate("userId", "userName email");
 
     if (!reviews || reviews.length === 0) {
@@ -74,7 +92,11 @@ router.get("/productReviews/:productId", async (req, res) => {
   }
 });
 
-router.delete("/deleteReview/:reviewId", autheUser, isAdminCheck, async (req, res) => {
+router.delete(
+  "/deleteReview/:reviewId",
+  autheUser,
+  isAdminCheck,
+  async (req, res) => {
     try {
       let review = await ProductReview.findById(req.params.reviewId);
 
