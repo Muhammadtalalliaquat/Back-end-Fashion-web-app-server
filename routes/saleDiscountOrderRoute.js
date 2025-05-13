@@ -5,8 +5,70 @@ import SaleDiscountOrder from "../models/SaleDiscountOrder.js";
 import ProductCart from "../models/productCart.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 import Joi from "joi";
+import nodemailer from "nodemailer";
 
 const router = express.Router();
+
+const transporter = nodemailer.createTransport({
+  service: `Gmail`,
+  auth: {
+    user: process.env.SENDER_EMAIL,
+    pass: process.env.SENDER_PASSWORD,
+  },
+});
+
+const sendEmail = (recepientEmail, orderDetails) => {
+  const { firstName, lastName, products, totalPrice } = orderDetails;
+
+  const productListHtml = products
+    .map(
+      (item) => `
+       <tr style="border-bottom:1px solid #ddd;">
+        <td style="padding:10px;">
+          <img src="${item.image}" alt="Product Image" width="80" style="border-radius:8px;" />
+        </td>
+        <td style="padding:10px;">
+          <strong>${item.name}</strong><br/>
+          Quantity: ${item.quantity}<br/>
+          Price: Rs. ${item.price}
+        </td>
+      </tr>
+      `
+    )
+    .join("");
+
+  const mailOption = {
+    from: process.env.SENDER_EMAIL,
+    to: recepientEmail,
+    subject: "🛒 Your Order Confirmation - Thank You!",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #4CAF50;">Thank you for your order, ${firstName}!</h2>
+        <p>Hi ${firstName} ${lastName},</p>
+        <p>We appreciate your purchase. Below are your order details:</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          ${productListHtml}
+        </table>
+
+        <h3 style="margin-top: 30px;">Total Amount: Rs. ${totalPrice}</h3>
+
+        <p style="margin-top: 30px;">You’ll receive another email when your items are shipped.</p>
+        <p>If you have any questions, feel free to reply to this email.</p>
+
+        <p style="margin-top: 40px;">Best regards,<br/><strong>Your Store Team</strong></p>
+      </div>
+    `,
+  };
+
+  transporter.sendMail(mailOption, (error, success) => {
+    if (error) {
+      console.log("Error sending email:", error);
+      return;
+    }
+    console.log("Email successfully sent:", success.response);
+  });
+};
 
 const shppingSchema = Joi.object({
   email: Joi.string()
@@ -85,6 +147,8 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
 
       selectedProducts.push({
         productId: product._id,
+        name: product.name,
+        image: product.image,
         quantity: quantity || 1,
         price: product.discountPrice,
       });
@@ -101,6 +165,8 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
 
       selectedProducts = cart.products.map((item) => ({
         productId: item.productId._id,
+        name: item.productId.name,
+        image: item.productId.image,
         quantity: item.quantity,
         price: item.productId.price,
       }));
@@ -129,6 +195,13 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
     });
 
     await newOrder.save();
+
+    sendEmail(email, {
+      firstName,
+      lastName,
+      products: selectedProducts,
+      totalPrice,
+    });
 
     await Promise.all(
       selectedProducts.map(async (p) => {
@@ -171,11 +244,35 @@ router.get("/getSalesOrders", autheUser, async (req, res) => {
   }
 });
 
-router.put(
-  "/updateDiscountOrder/:orderId",
-  autheUser,
-  isAdminCheck,
-  async (req, res) => {
+const sendStatusUpdateEmail = (email, name, status, orderId) => {
+  const mailOptions = {
+    from: process.env.SENDER_EMAIL,
+    to: email,
+    subject: `Your Order #${orderId} Status Updated`,
+    html: `
+      <p>Dear ${name},</p>
+      <p>We wanted to inform you that the status of your order <strong>#${orderId}</strong> has been updated to:</p>
+      <h3 style="color: #007bff;">${status.toUpperCase()}</h3>
+      ${
+        status === "delivered"
+          ? "<p>Thank you for shopping with us. Your order has been delivered successfully!</p>"
+          : "<p>You will be notified as it progresses further.</p>"
+      }
+      <br/>
+      <p>Regards,<br/>Your Store Team</p>
+    `,
+  };
+
+  transporter.sendMail(mailOptions, (error, success) => {
+    if (error) {
+      console.log("Error sending status update email:", error);
+    } else {
+      console.log("Status update email sent:", success.response);
+    }
+  });
+};
+
+router.put("/updateDiscountOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
     const { status } = req.body;
     const { orderId } = req.params;
 
@@ -198,6 +295,13 @@ router.put(
       );
 
       if (!order) return sendResponse(res, 404, null, true, "Order not found");
+
+       sendStatusUpdateEmail(
+         order.email,
+         `${order.firstName} ${order.lastName}`,
+         status,
+         order._id
+       );
 
       if (status === "delivered") {
         await SaleDiscountOrder.findByIdAndDelete(orderId);

@@ -6,6 +6,7 @@ import orderRoutes  from "./routes/orderRoute.js";
 import reviewRoutes  from "./routes/reviewRoute.js";
 import SaleDiscountRoutes from "./routes/salesDiscount.js";
 import SaleDiscountOrderRoutes from "./routes/saleDiscountOrderRoute.js";
+import multipleOrdersRoutes from "./routes/multiOrder.js";
 import contactRoute from "./routes/contactRoute.js";
 import feedBackRoute from "./routes/feedBackRoute.js";
 import subscribeRoute from "./routes/subscribeRoute.js";
@@ -39,6 +40,7 @@ connectDB()
     app.use("/review" , reviewRoutes);
     app.use("/sale-discounts", SaleDiscountRoutes);
     app.use("/saleDiscountsOrder", SaleDiscountOrderRoutes);
+    app.use("/multiorders", multipleOrdersRoutes);
     app.use("/contact-us", contactRoute);
     app.use("/feed-back", feedBackRoute);
     app.use("/Subscriber", subscribeRoute);
