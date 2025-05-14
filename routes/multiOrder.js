@@ -213,4 +213,95 @@ router.post("/multiOrder", autheUser, async (req, res) => {
   }
 });
 
+
+router.get("/getAllmultiOrders", autheUser, async (req, res) => {
+  try {
+    const filter = req.user.isAdmin ? {} : { userId: req.user._id };
+
+    const orders = await MultiOrder.find(filter)
+      // .populate("userId", "userName email isAdmin")
+      .populate("products.productId");
+    sendResponse(res, 200, orders, false, "All Multiples orders Get");
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
+  }
+});
+
+
+const sendStatusUpdateEmail = (email, name, status, orderId) => {
+  const mailOptions = {
+    from: process.env.SENDER_EMAIL,
+    to: email,
+    subject: `Your Order #${orderId} Status Updated`,
+    html: `
+      <p>Dear ${name},</p>
+      <p>We wanted to inform you that the status of your order <strong>#${orderId}</strong> has been updated to:</p>
+      <h3 style="color: #007bff;">${status.toUpperCase()}</h3>
+      ${
+        status === "delivered"
+          ? "<p>Thank you for shopping with us. Your order has been delivered successfully!</p>"
+          : "<p>You will be notified as it progresses further.</p>"
+      }
+      <br/>
+      <p>Regards,<br/>Your Store Team</p>
+    `,
+  };
+
+  transporter.sendMail(mailOptions, (error, success) => {
+    if (error) {
+      console.log("Error sending status update email:", error);
+    } else {
+      console.log("Status update email sent:", success.response);
+    }
+  });
+};
+
+
+router.put("/updateOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
+    const { status } = req.body;
+    const { orderId } = req.params;
+
+    try {
+      const validStatuses = [
+        "pending",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ];
+      if (!validStatuses.includes(status)) {
+        return sendResponse(res, 400, null, true, "Invalid status");
+      }
+
+      const order = await MultiOrder.findByIdAndUpdate(
+        orderId,
+        { status },
+        { new: true }
+      );
+      if (!order) return sendResponse(res, 404, null, true, "Order not found");
+
+      sendStatusUpdateEmail(
+        order.email,
+        `${order.firstName} ${order.lastName}`,
+        status,
+        order._id
+      );
+
+      if (status === "delivered") {
+        await MultiOrder.findByIdAndDelete(orderId);
+        return sendResponse(
+          res,
+          200,
+          null,
+          false,
+          "Order delivered and removed from database"
+        );
+      }
+      sendResponse(res, 200, order, false, "Order status updated");
+    } catch (error) {
+      sendResponse(res, 500, null, true, error.message);
+    }
+  }
+);
+
 export default router;
