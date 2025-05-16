@@ -3,7 +3,6 @@ import sendResponse from "../helpers/Response.js";
 import MultiOrder from "../models/multipleOrders.js";
 import Product from "../models/products.js";
 import SaleDiscountProduct from "../models/disconutOffer.js";
-import ProductCart from "../models/productCart.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 import nodemailer from "nodemailer";
 import Joi from "joi";
@@ -70,67 +69,69 @@ const sendEmail = (recepientEmail, orderDetails) => {
   });
 };
 
-// const shppingSchema = Joi.object({
-//   email: Joi.string()
-//     .pattern(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)
-//     .required()
-//     .messages({
-//       "string.pattern.base": "Email must be a valid Gmail address",
-//       "string.empty": "Email is required",
-//     }),
+const shppingSchema = Joi.object({
+  email: Joi.string()
+    .pattern(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)
+    .required()
+    .messages({
+      "string.pattern.base": "Email must be a valid Gmail address",
+      "string.empty": "Email is required",
+    }),
 
-//   firstName: Joi.string().min(2).max(30).required().messages({
-//     "string.empty": "First name is required",
-//     "string.min": "First name must be at least 2 characters",
-//     "string.max": "First name must be less than 30 characters",
-//   }),
+  firstName: Joi.string().min(2).max(30).required().messages({
+    "string.empty": "First name is required",
+    "string.min": "First name must be at least 2 characters",
+    "string.max": "First name must be less than 30 characters",
+  }),
 
-//   lastName: Joi.string().min(2).max(30).required().messages({
-//     "string.empty": "Last name is required",
-//     "string.min": "Last name must be at least 2 characters",
-//     "string.max": "Last name must be less than 30 characters",
-//   }),
+  lastName: Joi.string().min(2).max(30).required().messages({
+    "string.empty": "Last name is required",
+    "string.min": "Last name must be at least 2 characters",
+    "string.max": "Last name must be less than 30 characters",
+  }),
 
-//   city: Joi.string().min(2).required().messages({
-//     "string.empty": "City is required",
-//     "string.min": "City name must be at least 2 characters",
-//   }),
+  city: Joi.string().min(2).required().messages({
+    "string.empty": "City is required",
+    "string.min": "City name must be at least 2 characters",
+  }),
 
-//   address: Joi.string().min(5).required().messages({
-//     "string.empty": "Address is required",
-//     "string.min": "Address must be at least 5 characters",
-//   }),
+  address: Joi.string().min(5).required().messages({
+    "string.empty": "Address is required",
+    "string.min": "Address must be at least 5 characters",
+  }),
 
-//   posterCode: Joi.alternatives()
-//     .try(Joi.string().pattern(/^[A-Za-z0-9 ]{3,10}$/), Joi.number())
-//     .required(),
+  posterCode: Joi.alternatives()
+    .try(Joi.string().pattern(/^[A-Za-z0-9 ]{3,10}$/), Joi.number())
+    .required(),
 
-//   phone: Joi.alternatives()
-//     .try(Joi.string().pattern(/^[0-9]{7,15}$/), Joi.number())
-//     .required(),
+  phone: Joi.alternatives()
+    .try(Joi.string().pattern(/^[0-9]{7,15}$/), Joi.number())
+    .required(),
 
-//   selectedProducts: Joi.array()
-//     .items(
-//       Joi.object({
-//         productId: Joi.string().required(),
-//         productType: Joi.string()
-//           .valid("Product", "SaleDiscountProduct")
-//           .required(),
-//         quantity: Joi.number().min(1).required(),
-//       })
-//     )
-//     .min(1)
-//     .required()
-//     .messages({
-//       "array.base": "Selected products must be an array",
-//       "array.min": "At least one product must be selected",
-//     }),
-// });
-
+  selectedProducts: Joi.array()
+    .items(
+      Joi.object({
+        productId: Joi.string().required().messages({
+          "string.base": "Product ID must be a string",
+          "any.required": "Product ID is required",
+        }),
+        productType: Joi.string()
+          .valid("Product", "SaleDiscountProduct")
+          .required(),
+        quantity: Joi.number().min(1).required(),
+      })
+    )
+    .min(1)
+    .required()
+    .messages({
+      "array.base": "Selected products must be an array",
+      "array.min": "At least one product must be selected",
+    }),
+});
 
 router.post("/multiOrder", autheUser, async (req, res) => {
   try {
-    // const { error, value } = shppingSchema.validate(req.body);
+    const { error, value } = shppingSchema.validate(req.body);
     const {
       selectedProducts,
       email,
@@ -140,11 +141,11 @@ router.post("/multiOrder", autheUser, async (req, res) => {
       city,
       posterCode,
       phone,
-    } = req.body;
+    } = value;
 
-    // if (error) {
-    //   return sendResponse(res, 201, null, true, error.details[0].message);
-    // }
+    if (error) {
+      return sendResponse(res, 201, null, true, error.message);
+    }
 
     if (!selectedProducts || selectedProducts.length === 0) {
       return sendResponse(res, 404, null, true, "No products selected.");
@@ -167,7 +168,7 @@ router.post("/multiOrder", autheUser, async (req, res) => {
       totalPrice += price * quantity;
 
       formattedProducts.push({
-        productId: product._id,
+        productId: product._id.toString(),
         productType: item.productType,
         name: product.name,
         image: product.image,
@@ -177,6 +178,9 @@ router.post("/multiOrder", autheUser, async (req, res) => {
         stock: product.stock || product.inStock,
       });
     }
+
+    console.log("Sending selectedProducts:", selectedProducts);
+
 
     const newOrder = new MultiOrder({
       userId: req.user._id,
@@ -213,7 +217,6 @@ router.post("/multiOrder", autheUser, async (req, res) => {
   }
 });
 
-
 router.get("/getAllmultiOrders", autheUser, async (req, res) => {
   try {
     const filter = req.user.isAdmin ? {} : { userId: req.user._id };
@@ -226,7 +229,6 @@ router.get("/getAllmultiOrders", autheUser, async (req, res) => {
     sendResponse(res, 500, null, true, error.message);
   }
 });
-
 
 const sendStatusUpdateEmail = (email, name, status, orderId) => {
   const mailOptions = {
@@ -256,8 +258,11 @@ const sendStatusUpdateEmail = (email, name, status, orderId) => {
   });
 };
 
-
-router.put("/updateOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
+router.put(
+  "/updateOrder/:orderId",
+  autheUser,
+  isAdminCheck,
+  async (req, res) => {
     const { status } = req.body;
     const { orderId } = req.params;
 
