@@ -1,7 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import sendResponse from "../helpers/Response.js";
-import admin from "../firebaseConfig/firebaseAdmin.js";
 
 // async function autheUser(req, res, next) {
 //     try {
