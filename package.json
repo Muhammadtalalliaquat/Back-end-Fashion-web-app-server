@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "deploy": "firebase deploy --only functions:api"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +20,9 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "firebase": "^11.8.1",
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.3.2",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.13.1",
