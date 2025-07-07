@@ -16,7 +16,7 @@ import serverless from "serverless-http";
 import cors from "cors";
 import "dotenv/config";
 // import http from "http";
-// import path from "path";
+import path from "path";
 // // import functions from "firebase-functions";
 
 
