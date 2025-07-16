@@ -16,6 +16,19 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/heroSectionProducts", async (req, res) => {
+  try {
+    const products = await Product.find()
+      .sort({ createdAt: -1 }) // newest first
+      .limit(3)
+      .lean(); // optional: returns plain JS objects
+
+    sendResponse(res, 200, products, false, "Products fetched successfully");
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
+  }
+});
+
 router.get("/allProducts", async (req, res) => {
   try {
     const product = await Product.find();
