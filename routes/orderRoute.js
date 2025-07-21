@@ -342,7 +342,17 @@ router.get("/allOrders", autheUser, async (req, res) => {
   }
 });
 
-
+router.get("/getChartOrders", async (req, res) => {
+  try {
+    // const filter = req.user.isAdmin ? {} : { userId: req.user._id };
+    const orders = await Order.find()
+      .populate("userId", "userName email isAdmin")
+      .populate("products.productId");
+    sendResponse(res, 200, orders, false, "All orders retrieved");
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
+  }
+});
 
 const sendStatusUpdateEmail = (email, name, status, orderId) => {
   const mailOptions = {

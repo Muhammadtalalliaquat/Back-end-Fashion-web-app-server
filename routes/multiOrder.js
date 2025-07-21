@@ -181,7 +181,6 @@ router.post("/multiOrder", autheUser, async (req, res) => {
 
     console.log("Sending selectedProducts:", selectedProducts);
 
-
     const newOrder = new MultiOrder({
       userId: req.user._id,
       products: formattedProducts,
@@ -222,6 +221,19 @@ router.get("/getAllmultiOrders", autheUser, async (req, res) => {
     const filter = req.user.isAdmin ? {} : { userId: req.user._id };
 
     const orders = await MultiOrder.find(filter)
+      // .populate("userId", "userName email isAdmin")
+      .populate("products.productId");
+    sendResponse(res, 200, orders, false, "All Multiples orders Get");
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
+  }
+});
+
+router.get("/getMltiChartOrders", async (req, res) => {
+  try {
+    // const filter = req.user.isAdmin ? {} : { userId: req.user._id };
+
+    const orders = await MultiOrder.find()
       // .populate("userId", "userName email isAdmin")
       .populate("products.productId");
     sendResponse(res, 200, orders, false, "All Multiples orders Get");

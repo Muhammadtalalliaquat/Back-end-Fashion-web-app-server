@@ -244,6 +244,20 @@ router.get("/getSalesOrders", autheUser, async (req, res) => {
   }
 });
 
+
+router.get("/getChartSalesOrders", async (req, res) => {
+  try {
+    const salesOrders = await SaleDiscountOrder.find()
+      .populate("userId", "userName email isAdmin")
+      .populate("products.productId")
+      .sort({ createdAt: -1 });
+
+    sendResponse(res, 200, salesOrders, false, "All sales orders retrieved");
+  } catch (error) {
+    sendResponse(res, 500, null, true, error.message);
+  }
+});
+
 const sendStatusUpdateEmail = (email, name, status, orderId) => {
   const mailOptions = {
     from: process.env.SENDER_EMAIL,
