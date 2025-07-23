@@ -222,6 +222,7 @@ router.get("/getAllmultiOrders", autheUser, async (req, res) => {
 
     const orders = await MultiOrder.find(filter)
       // .populate("userId", "userName email isAdmin")
+      .sort({ createdAt: -1 })
       .populate("products.productId");
     sendResponse(res, 200, orders, false, "All Multiples orders Get");
   } catch (error) {
@@ -270,11 +271,7 @@ const sendStatusUpdateEmail = (email, name, status, orderId) => {
   });
 };
 
-router.put(
-  "/updateOrder/:orderId",
-  autheUser,
-  isAdminCheck,
-  async (req, res) => {
+router.put("/updateOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
     const { status } = req.body;
     const { orderId } = req.params;
 

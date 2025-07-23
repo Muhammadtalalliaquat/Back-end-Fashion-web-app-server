@@ -200,6 +200,17 @@ router.post("/placeOrder", autheUser, async (req, res) => {
 
     await newOrder.save();
 
+
+    await Promise.all(
+      selectedProducts.map(async (p) => {
+        await Product.findByIdAndUpdate(
+          p.productId,
+          { $inc: { stock : -p.quantity } },
+          { new: true }
+        );
+      })
+    );
+
     const enrichedProducts = await Promise.all(
       newOrder.products.map(async (item) => {
         const product = await Product.findById(item.productId).lean();
@@ -238,103 +249,13 @@ router.post("/placeOrder", autheUser, async (req, res) => {
 });
 
 
-// router.post("/placeOrder", autheUser, async (req, res) => {
-//   try {
-//     const { productId, country, city, area, quantity } = req.body;
-
-//     const orderItem = await Product.findById({
-//       userId: req.user._id,
-//     }).populate("products.productId");
-
-//     if (!orderItem || !orderItem.products || orderItem.products.length === 0) {
-//       return sendResponse(
-//         res,
-//         400,
-//         null,
-//         true,
-//         "Cart is empty or does not exist."
-//       );
-//     }
-//     // console.log("Order Items:", orderItem.products);
-
-//     let selectedProducts;
-
-//     if (productId) {
-//       selectedProducts = orderItem.products.filter(
-//         (p) => String(p.productId._id) === String(productId)
-//       );
-//       if (selectedProducts.length === 0) {
-//         return sendResponse(res, 404, null, true, "Product not found in cart.");
-//       }
-//     } else {
-//       selectedProducts = orderItem.products;
-//     }
-
-//     if (quantity) {
-//       selectedProducts = selectedProducts.map((p) => ({
-//         productId: p.productId._id, // Ensure the productId is preserved
-//         quantity: quantity,
-//         price: p.productId?.price || 0,
-//       }));
-//     }
-
-//     // let totalPrice = selectedProducts.reduce((sum, p) => {
-//     //   return sum + p.productId.price * p.quantity;
-//     // }, 0);
-//     let totalPrice = selectedProducts.reduce((sum, p) => {
-//       return sum + (p.price || 0) * p.quantity; // Use the price after update
-//     }, 0);
-
-//     let newOrder = new Order({
-//       userId: req.user._id,
-//       products: selectedProducts.map((p) => ({
-//         productId: p.productId?._id,
-//         quantity: p.quantity,
-//       })),
-//       totalPrice,
-//       status: "pending",
-//       address: {
-//         country,
-//         city,
-//         area,
-//       },
-//     });
-
-//     await newOrder.save();
-
-//     orderItem.products = orderItem.products.filter(
-//       (p) =>
-//         !selectedProducts.some(
-//           (sp) => String(sp.productId._id) === String(p.productId._id)
-//         )
-//     );
-
-//     if (orderItem.products.length === 0) {
-//       await ProductCart.findOneAndDelete({ userId: req.user._id });
-//     } else {
-//       await orderItem.save();
-//     }
-
-//     // await ProductCart.findOneAndDelete({ userId: req.user._id });
-
-//     sendResponse(
-//       res,
-//       201,
-//       { order: newOrder },
-//       false,
-//       "Order placed successfully"
-//     );
-//   } catch (error) {
-//     sendResponse(res, 500, null, true, error.message);
-//   }
-// });
-
 router.get("/allOrders", autheUser, async (req, res) => {
   try {
     const filter = req.user.isAdmin ? {} : { userId: req.user._id };
 
     const orders = await Order.find(filter)
       .populate("userId", "userName email isAdmin")
+      .sort({ createdAt: -1 })
       .populate("products.productId");
     sendResponse(res, 200, orders, false, "All orders retrieved");
   } catch (error) {

@@ -235,6 +235,7 @@ router.get("/getSalesOrders", autheUser, async (req, res) => {
     const filter = req.user.isAdmin ? {} : { userId: req.user._id };
     const salesOrders = await SaleDiscountOrder.find(filter)
       .populate("userId", "userName email isAdmin")
+      .sort({ createdAt: -1 })
       .populate("products.productId")
       .sort({ createdAt: -1 });
 
