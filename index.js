@@ -10,6 +10,7 @@ import multipleOrdersRoutes from "./routes/multiOrder.js";
 import contactRoute from "./routes/contactRoute.js";
 import feedBackRoute from "./routes/feedBackRoute.js";
 import subscribeRoute from "./routes/subscribeRoute.js";
+import wishListRoute from "./routes/wishListRoute.js";
 import morgan from "morgan";
 import connectDB from "./database/data.js";
 import cors from "cors";
@@ -45,6 +46,7 @@ connectDB()
     app.use("/contact-us", contactRoute);
     app.use("/feed-back", feedBackRoute);
     app.use("/Subscriber", subscribeRoute);
+    app.use("/productWishList", wishListRoute);
     // app.use("/uploads" , express.static(path.join(path.resolve(), "uploads")))
 
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
