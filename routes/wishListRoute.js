@@ -48,9 +48,11 @@ router.get("/getWishList", autheUser, async (req, res) => {
       userId: req.user._id,
     }).populate("products.productId");
 
-     if (!wishList) {
-       wishList = new ProductWishList({ userId: req.user._id, products: [] });
-     }
+    //  if (!wishList) {
+    //    wishList = new ProductWishList({ userId: req.user._id, products: [] });
+    //  }
+    if (!wishList || !wishList.products || wishList.products.length === 0)
+      return sendResponse(res, 200, { products: [] }, false, "Cart is empty");
 
     sendResponse(res, 200, wishList, false, "fetch product to wishlist");
   } catch (error) {
