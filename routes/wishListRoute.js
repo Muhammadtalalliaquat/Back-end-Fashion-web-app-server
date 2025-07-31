@@ -27,7 +27,7 @@ router.post("/addWishList", autheUser, async (req, res) => {
     const isSaleProduct = await SaleDiscountProduct.findById(productId);
     const productModel = isSaleProduct ? "SaleDiscountProduct" : "Product";
 
-    wishList.products.push({ productId, productModel });
+    wishList.products.push({ productId, productModel, addedAt: new Date() });
 
     await wishList.save();
 
@@ -35,12 +35,17 @@ router.post("/addWishList", autheUser, async (req, res) => {
       wishList._id
     ).populate("products.productId");
 
-    sendResponse(res, 200, updatedWishList, false, "Product added to wishlist success");
+    sendResponse(
+      res,
+      200,
+      updatedWishList,
+      false,
+      "Product added to wishlist success"
+    );
   } catch (error) {
     sendResponse(res, 500, null, true, error.message);
   }
 });
-
 
 router.get("/getWishList", autheUser, async (req, res) => {
   try {
@@ -48,11 +53,12 @@ router.get("/getWishList", autheUser, async (req, res) => {
       userId: req.user._id,
     }).populate("products.productId");
 
-    //  if (!wishList) {
-    //    wishList = new ProductWishList({ userId: req.user._id, products: [] });
-    //  }
     if (!wishList || !wishList.products || wishList.products.length === 0)
       return sendResponse(res, 200, { products: [] }, false, "Cart is empty");
+
+    wishList.products.sort((a, b) => {
+      return new Date(b.productId.createdAt) - new Date(a.productId.createdAt);
+    });
 
     sendResponse(res, 200, wishList, false, "fetch product to wishlist");
   } catch (error) {
@@ -60,11 +66,11 @@ router.get("/getWishList", autheUser, async (req, res) => {
   }
 });
 
-
 router.delete("/remove/:productId", autheUser, async (req, res) => {
   try {
     const wishList = await ProductWishList.findOne({ userId: req.user.id });
-    if (!wishList) return sendResponse(res, 404, null, true, "Wishlist not found");
+    if (!wishList)
+      return sendResponse(res, 404, null, true, "Wishlist not found");
 
     wishList.products = wishList.products.filter(
       (p) => p.productId.toString() !== req.params.productId
@@ -75,11 +81,10 @@ router.delete("/remove/:productId", autheUser, async (req, res) => {
       "products.productId"
     );
 
-    sendResponse(res, 200, updatedCart, false , "Product removed from wishlist");
+    sendResponse(res, 200, updatedCart, false, "Product removed from wishlist");
   } catch (error) {
     sendResponse(res, 500, null, true, error.message);
   }
 });
-
 
 export default router;

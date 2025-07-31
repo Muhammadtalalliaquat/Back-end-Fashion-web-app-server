@@ -15,12 +15,15 @@ router.get("/getCart", autheUser, async (req, res) => {
     if (!cart || !cart.products || cart.products.length === 0)
       return sendResponse(res, 200, { products: [] }, false, "Cart is empty");
 
+   cart.products.sort((a, b) => {
+     return new Date(b._id.getTimestamp()) - new Date(a._id.getTimestamp());
+   });
+
     sendResponse(res, 200, cart, false, "Cart fetched successfully");
   } catch (error) {
     sendResponse(res, 500, null, true, error.message);
   }
 });
-
 
 router.post("/addCart", autheUser, async (req, res) => {
   const { productId, quantity } = req.body;
@@ -56,7 +59,6 @@ router.post("/addCart", autheUser, async (req, res) => {
     sendResponse(res, 500, null, true, error.message);
   }
 });
-
 
 // router.post("/addCart", autheUser, async (req, res) => {
 //   const { productId, quantity } = req.body;
@@ -115,14 +117,13 @@ router.delete("/remove/:productId", autheUser, async (req, res) => {
 router.put("/update/:productId", autheUser, async (req, res) => {
   const { quantity } = req.body;
   try {
-    
     const cart = await ProductCart.findOne({ userId: req.user.id });
 
     if (!cart) return sendResponse(res, 404, null, true, "cart not found");
 
     console.log("Cart before update:", cart);
     console.log("Product ID from request:", req.params.productId);
-    
+
     // const product = cart.products.find(
     //   (p) => p.productId !== req.params.productId
     // );

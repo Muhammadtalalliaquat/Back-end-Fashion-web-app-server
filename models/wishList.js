@@ -20,6 +20,10 @@ const wishListSchema = new mongoose.Schema(
           required: true,
           enum: ["Product", "SaleDiscountProduct"],
         },
+        addedAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
   },
