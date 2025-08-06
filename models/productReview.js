@@ -19,6 +19,7 @@ const reviewSchema  = new mongoose.Schema({
         },
       ],
     rating: { type: Number, required: true , min: 1 , max: 5},
+    image: { type: String },
     comment: { type: String },
     createdAt: { type: Date, default: Date.now }
 } , { timestamps: true });
