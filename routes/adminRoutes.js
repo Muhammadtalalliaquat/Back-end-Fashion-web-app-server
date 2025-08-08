@@ -29,6 +29,23 @@ router.get("/heroSectionProducts", async (req, res) => {
   }
 });
 
+// router.get("/onepageproductshow", async (req, res) => {
+//   try {
+//     const product = await Product.find().limit(12);
+//     sendResponse(res, 200, product, false, "Product fetch successfully");
+//     // const page = parseInt(req.query.page) || 1; // default page 1
+//     // const limit = 8;
+//     // const skip = (page - 1) * limit;
+
+//     // const products = await Product.find().skip(skip).limit(limit);
+
+//     // sendResponse(res, 200, products, false, "Products fetched successfully");
+//   } catch (error) {
+//     sendResponse(res, 500, null, true, error.message);
+//   }
+// });
+
+
 router.get("/allProducts", async (req, res) => {
   try {
     const product = await Product.find();
