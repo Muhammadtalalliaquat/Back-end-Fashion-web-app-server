@@ -117,7 +117,11 @@ router.get("/productReviews/:productId", async (req, res) => {
   }
 });
 
-router.delete("/deleteReview/:reviewId", autheUser, isAdminCheck, async (req, res) => {
+router.delete(
+  "/deleteReview/:reviewId",
+  autheUser,
+  isAdminCheck,
+  async (req, res) => {
     try {
       let review = await ProductReview.findById(req.params.reviewId);
 
