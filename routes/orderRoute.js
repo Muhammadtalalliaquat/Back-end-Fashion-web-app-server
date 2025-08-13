@@ -27,7 +27,7 @@ const sendEmail = (recepientEmail, orderDetails) => {
       (item) => `
        <tr style="border-bottom:1px solid #ddd;">
         <td style="padding:10px;">
-          <img src="${item.image}" alt="Product Image" width="80" style="border-radius:8px;" />
+          <img src="${item.image[0]}" alt="Product Image" width="80" style="border-radius:8px;" />
         </td>
         <td style="padding:10px;">
           <strong>${item.name}</strong><br/>
@@ -152,7 +152,7 @@ router.post("/placeOrder", autheUser, async (req, res) => {
       selectedProducts.push({
         productId: product._id,
         name: product.name,
-        image: product.image,
+        image: product.images,
         quantity: quantity || 1,
         price: product.price,
       });
@@ -170,7 +170,7 @@ router.post("/placeOrder", autheUser, async (req, res) => {
       selectedProducts = cart.products.map((item) => ({
         productId: item.productId._id,
         name: item.productId.name,
-        image: item.productId.image,
+        image: item.productId.images,
         quantity: item.quantity,
         price: item.productId.price,
       }));
@@ -217,12 +217,14 @@ router.post("/placeOrder", autheUser, async (req, res) => {
         return {
           productId: product._id,
           name:  product.name,
-          image: product.image,
+          image: product.images,
           quantity: item.quantity,
           price: product.price,
         };
       })
     );
+
+    console.log("order data is here:", enrichedProducts);
 
     sendEmail(email, {
       firstName,

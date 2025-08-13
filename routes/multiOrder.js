@@ -4,6 +4,8 @@ import MultiOrder from "../models/multipleOrders.js";
 import Product from "../models/products.js";
 import SaleDiscountProduct from "../models/disconutOffer.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
+import ProductCart from "../models/productCart.js";
+
 import nodemailer from "nodemailer";
 import Joi from "joi";
 
@@ -154,6 +156,8 @@ router.post("/multiOrder", autheUser, async (req, res) => {
     let totalPrice = 0;
     const formattedProducts = [];
 
+    
+
     for (const item of selectedProducts) {
       const Model =
         item.productType === "SaleDiscountProduct"
@@ -167,11 +171,17 @@ router.post("/multiOrder", autheUser, async (req, res) => {
 
       totalPrice += price * quantity;
 
+     const imageToSave =
+       Array.isArray(product.images) && product.images.length > 0
+         ? product.images[0] // First image from array
+         : product.image || item.image || "https://via.placeholder.com/150";
+
+
       formattedProducts.push({
         productId: product._id.toString(),
         productType: item.productType,
         name: product.name,
-        image: product.image,
+        image: imageToSave,
         quantity,
         price,
         category: product.category || product.SalesCategory,
@@ -179,7 +189,7 @@ router.post("/multiOrder", autheUser, async (req, res) => {
       });
     }
 
-    console.log("Sending selectedProducts:", selectedProducts);
+    console.log("Sending selectedProducts:", formattedProducts);
 
     const newOrder = new MultiOrder({
       userId: req.user._id,
@@ -195,6 +205,11 @@ router.post("/multiOrder", autheUser, async (req, res) => {
     });
 
     await newOrder.save();
+
+    // await ProductCart.deleteMany({
+    //   userId: req.user._id,
+    //   "items.productId": { $in: selectedProducts.map((p) => p.productId) },
+    // });
 
     sendEmail(email, {
       firstName,
@@ -271,7 +286,11 @@ const sendStatusUpdateEmail = (email, name, status, orderId) => {
   });
 };
 
-router.put("/updateOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
+router.put(
+  "/updateOrder/:orderId",
+  autheUser,
+  isAdminCheck,
+  async (req, res) => {
     const { status } = req.body;
     const { orderId } = req.params;
 
