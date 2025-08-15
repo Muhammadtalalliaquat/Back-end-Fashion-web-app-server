@@ -119,6 +119,7 @@ const shppingSchema = Joi.object({
 router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
   try {
     const { error, value } = shppingSchema.validate(req.body);
+    const userId = req.user._id;
 
     let selectedProducts = [];
     let totalPrice = 0;
@@ -178,7 +179,7 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
     }
 
     const newOrder = new SaleDiscountOrder({
-      userId: req.user._id,
+      userId,
       products: selectedProducts.map((p) => ({
         productId: p.productId,
         quantity: p.quantity,
@@ -213,9 +214,12 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
       })
     );
 
-    if (productId) {
-      await ProductCart.findOneAndDelete({ userId: req.user._id });
-    }
+   if (productId) {
+     await ProductCart.updateOne(
+       { userId: userId },
+       { $pull: { products: { productId: { $in: productId } } } }
+     );
+   }
 
     return sendResponse(
       res,

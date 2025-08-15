@@ -9,7 +9,6 @@ import nodemailer from "nodemailer";
 
 const router = express.Router();
 
-
 const transporter = nodemailer.createTransport({
   service: `Gmail`,
   auth: {
@@ -17,7 +16,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SENDER_PASSWORD,
   },
 });
-
 
 const sendEmail = (recepientEmail, orderDetails) => {
   const { firstName, lastName, products, totalPrice } = orderDetails;
@@ -72,7 +70,6 @@ const sendEmail = (recepientEmail, orderDetails) => {
   });
 };
 
-
 const shppingSchema = Joi.object({
   email: Joi.string()
     .pattern(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)
@@ -119,11 +116,10 @@ const shppingSchema = Joi.object({
   productId: Joi.string().optional(),
 });
 
-
 router.post("/placeOrder", autheUser, async (req, res) => {
   try {
     const { error, value } = shppingSchema.validate(req.body);
-
+    const userId = req.user._id;
     if (error) {
       return sendResponse(res, 201, null, true, error.details[0].message);
     }
@@ -182,7 +178,7 @@ router.post("/placeOrder", autheUser, async (req, res) => {
     }
 
     const newOrder = new Order({
-      userId: req.user._id,
+      userId,
       products: selectedProducts.map((p) => ({
         productId: p.productId,
         quantity: p.quantity,
@@ -200,12 +196,11 @@ router.post("/placeOrder", autheUser, async (req, res) => {
 
     await newOrder.save();
 
-
     await Promise.all(
       selectedProducts.map(async (p) => {
         await Product.findByIdAndUpdate(
           p.productId,
-          { $inc: { stock : -p.quantity } },
+          { $inc: { stock: -p.quantity } },
           { new: true }
         );
       })
@@ -216,7 +211,7 @@ router.post("/placeOrder", autheUser, async (req, res) => {
         const product = await Product.findById(item.productId).lean();
         return {
           productId: product._id,
-          name:  product.name,
+          name: product.name,
           image: product.images,
           quantity: item.quantity,
           price: product.price,
@@ -234,7 +229,10 @@ router.post("/placeOrder", autheUser, async (req, res) => {
     });
 
     if (productId) {
-      await ProductCart.findOneAndDelete({ userId: req.user._id });
+      await ProductCart.updateOne(
+        { userId: userId },
+        { $pull: { products: { productId: { $in: productId } } } }
+      );
     }
 
     return sendResponse(
@@ -249,7 +247,6 @@ router.post("/placeOrder", autheUser, async (req, res) => {
     return sendResponse(res, 500, null, true, "Something went wrong.");
   }
 });
-
 
 router.get("/allOrders", autheUser, async (req, res) => {
   try {
@@ -305,8 +302,11 @@ const sendStatusUpdateEmail = (email, name, status, orderId) => {
   });
 };
 
-
-router.put("/updateOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
+router.put(
+  "/updateOrder/:orderId",
+  autheUser,
+  isAdminCheck,
+  async (req, res) => {
     const { status } = req.body;
     const { orderId } = req.params;
 

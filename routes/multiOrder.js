@@ -5,7 +5,6 @@ import Product from "../models/products.js";
 import SaleDiscountProduct from "../models/disconutOffer.js";
 import { autheUser, isAdminCheck } from "../middleware/authUser.js";
 import ProductCart from "../models/productCart.js";
-
 import nodemailer from "nodemailer";
 import Joi from "joi";
 
@@ -131,9 +130,39 @@ const shppingSchema = Joi.object({
     }),
 });
 
+// async function cleanCartAfterOrder(userId, selectedProducts) {
+//   try {
+//     const selectedIds = selectedProducts
+//       .map((p) => {
+//         if (!p.productId) return null;
+
+//         if (typeof p.productId === "object" && p.productId._id) {
+//           return p.productId._id.toString();
+//         }
+
+//         return p.productId.toString();
+//       })
+//       .filter(Boolean);
+
+//     const objectIdArray = selectedIds.map(
+//       (id) => new mongoose.Types.ObjectId(id)
+//     );
+
+//     await ProductCart.updateOne(
+//       { userId: userId },
+//       { $pull: { products: { productId: { $in: objectIdArray } } } }
+//     );
+
+//     console.log("✅ Cart cleaned successfully after order");
+//   } catch (error) {
+//     console.error("❌ Cart cleaning error:", error);
+//   }
+// }
+
 router.post("/multiOrder", autheUser, async (req, res) => {
   try {
     const { error, value } = shppingSchema.validate(req.body);
+    const userId = req.user._id;
     const {
       selectedProducts,
       email,
@@ -156,8 +185,6 @@ router.post("/multiOrder", autheUser, async (req, res) => {
     let totalPrice = 0;
     const formattedProducts = [];
 
-    
-
     for (const item of selectedProducts) {
       const Model =
         item.productType === "SaleDiscountProduct"
@@ -168,20 +195,17 @@ router.post("/multiOrder", autheUser, async (req, res) => {
 
       const quantity = item.quantity || 1;
       const price = product.discountPrice || product.price;
+      const image = Array.isArray(product.images)
+        ? product.images[0]
+        : product.image;
 
       totalPrice += price * quantity;
-
-     const imageToSave =
-       Array.isArray(product.images) && product.images.length > 0
-         ? product.images[0] // First image from array
-         : product.image || item.image || "https://via.placeholder.com/150";
-
 
       formattedProducts.push({
         productId: product._id.toString(),
         productType: item.productType,
         name: product.name,
-        image: imageToSave,
+        image,
         quantity,
         price,
         category: product.category || product.SalesCategory,
@@ -192,7 +216,7 @@ router.post("/multiOrder", autheUser, async (req, res) => {
     console.log("Sending selectedProducts:", formattedProducts);
 
     const newOrder = new MultiOrder({
-      userId: req.user._id,
+      userId,
       products: formattedProducts,
       totalPrice,
       email,
@@ -206,10 +230,14 @@ router.post("/multiOrder", autheUser, async (req, res) => {
 
     await newOrder.save();
 
-    // await ProductCart.deleteMany({
-    //   userId: req.user._id,
-    //   "items.productId": { $in: selectedProducts.map((p) => p.productId) },
-    // });
+   
+
+   const selectedIds = selectedProducts.map((p) => p.productId.toString());
+
+   await ProductCart.updateOne(
+     { userId: userId },
+     { $pull: { products: { productId: { $in: selectedIds } } } }
+   );
 
     sendEmail(email, {
       firstName,
@@ -286,11 +314,7 @@ const sendStatusUpdateEmail = (email, name, status, orderId) => {
   });
 };
 
-router.put(
-  "/updateOrder/:orderId",
-  autheUser,
-  isAdminCheck,
-  async (req, res) => {
+router.put("/updateOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
     const { status } = req.body;
     const { orderId } = req.params;
 
