@@ -161,7 +161,20 @@ const shppingSchema = Joi.object({
 
 router.post("/multiOrder", autheUser, async (req, res) => {
   try {
-    const { error, value } = shppingSchema.validate(req.body);
+    // const { error, value } = shppingSchema.validate(req.body);
+    const { error, value } = shppingSchema.validate(req.body, {
+      abortEarly: false, // ✅ saare errors ek saath mileinge
+    });
+
+    if (error) {
+      return sendResponse(
+        res,
+        200,
+        null,
+        true,
+        error.details.map((err) => err.message) // ✅ multiple messages
+      );
+    }
     const userId = req.user._id;
     const {
       selectedProducts,
@@ -174,9 +187,9 @@ router.post("/multiOrder", autheUser, async (req, res) => {
       phone,
     } = value;
 
-    if (error) {
-      return sendResponse(res, 201, null, true, error.message);
-    }
+    // if (error) {
+    //   return sendResponse(res, 201, null, true, error.message);
+    // }
 
     if (!selectedProducts || selectedProducts.length === 0) {
       return sendResponse(res, 404, null, true, "No products selected.");
@@ -230,14 +243,12 @@ router.post("/multiOrder", autheUser, async (req, res) => {
 
     await newOrder.save();
 
-   
+    const selectedIds = selectedProducts.map((p) => p.productId.toString());
 
-   const selectedIds = selectedProducts.map((p) => p.productId.toString());
-
-   await ProductCart.updateOne(
-     { userId: userId },
-     { $pull: { products: { productId: { $in: selectedIds } } } }
-   );
+    await ProductCart.updateOne(
+      { userId: userId },
+      { $pull: { products: { productId: { $in: selectedIds } } } }
+    );
 
     sendEmail(email, {
       firstName,

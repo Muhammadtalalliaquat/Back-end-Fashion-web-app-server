@@ -10,7 +10,7 @@ const feedBackSchema = new mongoose.Schema(
     feedBackMessage: {
       type: String,
       required: true,
-      minlength: 10,
+      minlength: 5,
     },
   },
   { timestamps: true }

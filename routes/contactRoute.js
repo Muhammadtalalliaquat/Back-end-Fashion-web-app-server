@@ -22,9 +22,9 @@ const registerSchema = Joi.object({
     .messages({
       "string.pattern.base": "Email must be a valid Gmail address",
     }),
-  message: Joi.string().min(5).required().messages({
+  message: Joi.string().min(10).required().messages({
     "string.empty": "Message is required",
-    "string.min": "Message must be at least 5 characters",
+    "string.min": "Message must be at least 10 characters",
   }),
 });
 
@@ -58,8 +58,22 @@ function sendEmail(recepientEmail) {
 
 router.post("/addContact", autheUser, async (req, res) => {
   try {
-    const { error, value } = registerSchema.validate(req.body);
-    if (error) return sendResponse(res, 201, null, true, error.message);
+    // const { error, value } = registerSchema.validate(req.body);
+    // if (error) return sendResponse(res, 201, null, true, error.message);
+
+    const { error, value } = registerSchema.validate(req.body, {
+      abortEarly: false, // ✅ saare errors ek saath mileinge
+    });
+
+    if (error) {
+      return sendResponse(
+        res,
+        200,
+        null,
+        true,
+        error.details.map((err) => err.message) // ✅ multiple messages
+      );
+    }
 
     const { firstName, lastName, email, message } = value;
 
