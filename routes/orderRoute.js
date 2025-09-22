@@ -118,11 +118,25 @@ const shppingSchema = Joi.object({
 
 router.post("/placeOrder", autheUser, async (req, res) => {
   try {
-    const { error, value } = shppingSchema.validate(req.body);
-    const userId = req.user._id;
+    // const { error, value } = shppingSchema.validate(req.body);
+    // if (error) {
+    //   return sendResponse(res, 201, null, true, error.details[0].message);
+    // }
+
+    const { error, value } = shppingSchema.validate(req.body, {
+      abortEarly: false, 
+    });
+
     if (error) {
-      return sendResponse(res, 201, null, true, error.details[0].message);
+      return sendResponse(
+        res,
+        200,
+        null,
+        true,
+        error.details.map((err) => err.message)
+      );
     }
+    const userId = req.user._id;
 
     const {
       productId,
