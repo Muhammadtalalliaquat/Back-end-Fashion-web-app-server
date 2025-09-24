@@ -118,15 +118,23 @@ const shppingSchema = Joi.object({
 
 router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
   try {
-    const { error, value } = shppingSchema.validate(req.body);
+    const { error, value } = shppingSchema.validate(req.body, {
+      abortEarly: false,
+    });
+
+    if (error) {
+      return sendResponse(
+        res,
+        200,
+        null,
+        true,
+        error.details.map((err) => err.message)
+      );
+    }
     const userId = req.user._id;
 
     let selectedProducts = [];
     let totalPrice = 0;
-
-    if (error) {
-      return sendResponse(res, 201, null, true, error.details[0].message);
-    }
 
     const {
       productId,
@@ -214,12 +222,12 @@ router.post("/placeSaleDiscountOrder", autheUser, async (req, res) => {
       })
     );
 
-   if (productId) {
-     await ProductCart.updateOne(
-       { userId: userId },
-       { $pull: { products: { productId: { $in: productId } } } }
-     );
-   }
+    if (productId) {
+      await ProductCart.updateOne(
+        { userId: userId },
+        { $pull: { products: { productId: { $in: productId } } } }
+      );
+    }
 
     return sendResponse(
       res,
@@ -248,7 +256,6 @@ router.get("/getSalesOrders", autheUser, async (req, res) => {
     sendResponse(res, 500, null, true, error.message);
   }
 });
-
 
 router.get("/getChartSalesOrders", async (req, res) => {
   try {
@@ -291,7 +298,11 @@ const sendStatusUpdateEmail = (email, name, status, orderId) => {
   });
 };
 
-router.put("/updateDiscountOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
+router.put(
+  "/updateDiscountOrder/:orderId",
+  autheUser,
+  isAdminCheck,
+  async (req, res) => {
     const { status } = req.body;
     const { orderId } = req.params;
 
@@ -315,12 +326,12 @@ router.put("/updateDiscountOrder/:orderId", autheUser, isAdminCheck, async (req,
 
       if (!order) return sendResponse(res, 404, null, true, "Order not found");
 
-       sendStatusUpdateEmail(
-         order.email,
-         `${order.firstName} ${order.lastName}`,
-         status,
-         order._id
-       );
+      sendStatusUpdateEmail(
+        order.email,
+        `${order.firstName} ${order.lastName}`,
+        status,
+        order._id
+      );
 
       if (status === "delivered") {
         await SaleDiscountOrder.findByIdAndDelete(orderId);
