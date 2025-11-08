@@ -78,7 +78,7 @@ router.get("/", async (req, res) => {
   try {
     const discounts = await SaleDiscountProduct.find()
       .sort({ createdAt: 1 })
-      .limit(3);
+      .limit(4);
 
     const lastThreeSorted = discounts.reverse();
     sendResponse(
