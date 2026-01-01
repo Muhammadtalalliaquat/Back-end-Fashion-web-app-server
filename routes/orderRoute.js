@@ -311,11 +311,7 @@ const sendStatusUpdateEmail = (email, name, status, orderId) => {
   });
 };
 
-router.put(
-  "/updateOrder/:orderId",
-  autheUser,
-  isAdminCheck,
-  async (req, res) => {
+router.put("/updateOrder/:orderId", autheUser, isAdminCheck, async (req, res) => {
     const { status } = req.body;
     const { orderId } = req.params;
 
